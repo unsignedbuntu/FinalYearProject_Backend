@@ -3,19 +3,19 @@
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
-    public class CategoriesDTO
+    public class StoresDTO
     {
 #nullable disable
 
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 
-        public int CategoryID { get; set; }
+        public int StoreID { get; set; }
 
-        public string CategoryName { get; set; }
+        public string StoreName { get; set; }
+
+        public string StoreType { get; set; }
 
         public bool Status { get; set; } = true;
-
-        public CategoriesDTO() { }
     }
 }

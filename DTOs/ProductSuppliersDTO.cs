@@ -3,29 +3,22 @@
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
-    public class InventoryDTO
+    public class ProductSuppliersDTO
     {
 #nullable disable
-
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 
-        public int InventoryID { get; set; }
+        public int ProductSupplierID { get; set; }
 
-        public enum ChangeTypeEnum
-        {
-            IN,
-            OUT
-        }
+        public decimal SupplyPrice { get; set; }
 
-        public ChangeTypeEnum ChangeType { get; set; }
-
-        public int QuantityChanged { get; set; }
-
-        public DateTime ChangeDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+        public DateTime SupplyDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
         public bool Status { get; set; } = true;
 
         public virtual ProductsDTO Products { get; set; }
+
+        public virtual SuppliersDTO Suppliers { get; set; }
     }
 }

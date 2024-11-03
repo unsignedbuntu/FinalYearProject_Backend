@@ -3,21 +3,21 @@
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
-    public class ProductRecommentdationsDTO
+    public class UserStoreDTO
     {
 #nullable disable
+
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 
-        public int RecommendationID { get; set; }
+        public int UserStoreID { get; set; }
 
-        public DateTime RecommendationDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
         public bool Status { get; set; } = true;
 
         public virtual UsersDTO Users { get; set; }
 
-        public virtual ProductsDTO Products { get; set; }
-
+        public virtual StoresDTO Stores { get; set; }
     }
 }
