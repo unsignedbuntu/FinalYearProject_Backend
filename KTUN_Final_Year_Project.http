@@ -1,0 +1,6 @@
+@KTUN_Final_Year_Project_HostAddress = http://localhost:5144
+
+GET {{KTUN_Final_Year_Project_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
