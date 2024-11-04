@@ -3,7 +3,7 @@
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
-    public class ProductRecommentdationsDTO
+    public class ProductRecommendationsDTO
     {
 #nullable disable
         [Key]
