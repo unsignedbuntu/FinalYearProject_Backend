@@ -22,9 +22,5 @@
 
         public virtual SalesDTO Sales { get; set; }
 
-        public DateTime SaleDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public decimal TotalAmount { get; set; }
-
     }
 }
