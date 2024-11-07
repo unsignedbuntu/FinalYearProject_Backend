@@ -52,7 +52,7 @@
             Modelbuilder.Entity<UserLoyalty>().ToTable("UserLoyalty");
 
             Modelbuilder.Entity<ProductRecommendations>().HasKey(pr => pr.RecommendationID);
-            Modelbuilder.Entity<ProductRecommendations>().ToTable("ProductRecommentdations");
+            Modelbuilder.Entity<ProductRecommendations>().ToTable("ProductRecommendations");
 
             Modelbuilder.Entity<UserStore>().HasKey(us => us.UserStoreID);
             Modelbuilder.Entity<UserStore>().ToTable("UserStore");
@@ -82,7 +82,7 @@
             Modelbuilder.Entity<Suppliers>().HasKey(su => su.SupplierID);
             Modelbuilder.Entity<Suppliers>().ToTable("Suppliers");
 
-            Modelbuilder.Entity<LoyaltyPrograms>().HasKey(lp => lp.LoyaltyProgramsID);
+            Modelbuilder.Entity<LoyaltyPrograms>().HasKey(lp => lp.LoyaltyProgramID);
             Modelbuilder.Entity<LoyaltyPrograms>().ToTable("LoyaltyPrograms");
 
 

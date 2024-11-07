@@ -8,23 +8,19 @@
     {
 #nullable disable
 
-        public int UserID { get; set; }
-
-        public int ProductID { get; set; }
-
-        [ForeignKey("UserID")]
-
-        public virtual UsersDTO Users { get; set; }
-
-        [ForeignKey("ProductID")]
-
-        public virtual ProductsDTO Products { get; set; }
-
         public string FeedbackText { get; set; }
 
         public int Rating { get; set; }
 
         public DateTime FeedbackDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
+        [ForeignKey("UserID")]
+
+        public int UserID { get; set; }
+
+        [ForeignKey("ProductID")]
+
+        public int ProductID { get; set; }
 
     }
 }

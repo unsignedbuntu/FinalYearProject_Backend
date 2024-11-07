@@ -40,7 +40,7 @@ namespace KTUN_Final_Year_Project.Controllers
             var suppliers = _context.Suppliers
                 .Where(su => su.SupplierID == id)
                 .Where(su => su.Status == true)
-                .Select(su => _mapper.Map<SuppliersDTO>(su))
+                .Select(su => _mapper.Map<Suppliers>(su))
                 .FirstOrDefault();
 
             if (suppliers == null)

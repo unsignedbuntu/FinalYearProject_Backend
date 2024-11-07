@@ -27,7 +27,7 @@ namespace KTUN_Final_Year_Project.Controllers
         {
             var loyaltyPrograms = _context.LoyaltyPrograms
                 .Where(lp => lp.Status == true)
-                .Select(lp => _mapper.Map<LoyaltyProgramsDTO>(lp))
+                .Select(lp => _mapper.Map<LoyaltyPrograms>(lp))
                 .ToList();
 
             return Ok(loyaltyPrograms);
@@ -38,9 +38,9 @@ namespace KTUN_Final_Year_Project.Controllers
         public IActionResult GetLoyaltyProgramsByID(int id)
         {
             var loyaltyPrograms = _context.LoyaltyPrograms
-                 .Where(lp => lp.LoyaltyProgramsID == id)
+                 .Where(lp => lp.LoyaltyProgramID == id)
                 .Where(lp => lp.Status == true)
-                .Select(lp => _mapper.Map<LoyaltyProgramsDTO>(lp))
+                .Select(lp => _mapper.Map<LoyaltyPrograms>(lp))
                 .FirstOrDefault();
 
             if (loyaltyPrograms == null)
@@ -78,7 +78,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 return BadRequest();
             }
 
-            var loyaltyProgramsResponse = _context.LoyaltyPrograms.FirstOrDefault(lp => lp.LoyaltyProgramsID == id);
+            var loyaltyProgramsResponse = _context.LoyaltyPrograms.FirstOrDefault(lp => lp.LoyaltyProgramID == id);
 
             if (loyaltyProgramsResponse == null)
             {
@@ -101,7 +101,7 @@ namespace KTUN_Final_Year_Project.Controllers
         [Produces("application/json")]
         public IActionResult SoftDeleteLoyaltyProgramsByStatus(int id)
         {
-            var loyaltyPrograms = _context.LoyaltyPrograms.FirstOrDefault(lp => lp.LoyaltyProgramsID == id);
+            var loyaltyPrograms = _context.LoyaltyPrograms.FirstOrDefault(lp => lp.LoyaltyProgramID == id);
 
             if (loyaltyPrograms == null)
             {

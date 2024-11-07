@@ -27,7 +27,7 @@ namespace KTUN_Final_Year_Project.Controllers
         {
             var users = _context.Users
                 .Where(u => u.Status == true)
-                .Select(u => _mapper.Map<UsersDTO>(u))
+                .Select(u => _mapper.Map<Users>(u))
                 .ToList();
 
             return Ok(users);
@@ -40,7 +40,7 @@ namespace KTUN_Final_Year_Project.Controllers
             var users = _context.Users
                  .Where(u => u.UserID == id)
                 .Where(u => u.Status == true)
-                .Select(u => _mapper.Map<UsersDTO>(u))
+                .Select(u => _mapper.Map<Users>(u))
                 .FirstOrDefault();
 
             if (users == null)

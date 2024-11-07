@@ -8,23 +8,20 @@
     {
 #nullable disable
 
-        public int ProductID { get; set; }
-
-        [ForeignKey("ProductID")]
-
-        public virtual ProductsDTO Products { get; set; }
-
-        public enum ChangeTypeEnum
-        {
-            IN,
-            OUT
-        }
-
-        public ChangeTypeEnum ChangeType { get; set; }
+        /* public enum ChangeTypeEnum
+         {
+             IN,
+             OUT
+         }
+        */
+        public string ChangeType { get; set; }
 
         public int QuantityChanged { get; set; }
 
         public DateTime ChangeDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
+        [ForeignKey("ProductID")]
+
+        public int ProductID { get; set; }
     }
 }

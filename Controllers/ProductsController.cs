@@ -29,7 +29,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(p => p.Store)
                 .Include(p => p.Category)
                 .Where(p => p.Status == true)
-                .Select(p => _mapper.Map<ProductsDTO>(p))
+                .Select(p => _mapper.Map<Products>(p))
                 .ToList();
 
             return Ok(product);
@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(p => p.Category)
                 .Where(p => p.ProductID == id)
                 .Where(p => p.Status == true)
-                .Select(p => _mapper.Map<ProductsDTO>(p))
+                .Select(p => _mapper.Map<Products>(p))
                 .FirstOrDefault();
 
             if (product == null)
@@ -96,6 +96,10 @@ namespace KTUN_Final_Year_Project.Controllers
             productResponse.StockQuantity = productsResponseDTO.StockQuantity;
 
             productResponse.Barcode = productsResponseDTO.Barcode;
+
+            productResponse.StoreID = productsResponseDTO.StoreID;
+
+            productResponse.CategoryID = productsResponseDTO.CategoryID;
 
             _context.SaveChanges();
 

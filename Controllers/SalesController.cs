@@ -29,7 +29,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(s => s.User)
                 .Include(s => s.Store)
                 .Where(s => s.Status == true)
-                .Select(s => _mapper.Map<SalesDTO>(s))
+                .Select(s => _mapper.Map<Sales>(s))
                 .ToList();
 
             return Ok(sales);
@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(s => s.Store)
                 .Where(s => s.SaleID == id)
                 .Where(s => s.Status == true)
-                .Select(s => _mapper.Map<SalesDTO>(s))
+                .Select(s => _mapper.Map<Sales>(s))
                 .FirstOrDefault();
 
             if (sales == null)
@@ -92,6 +92,10 @@ namespace KTUN_Final_Year_Project.Controllers
             salesResponse.SaleDate = salesResponseDTO.SaleDate;
 
             salesResponse.TotalAmount = salesResponseDTO.TotalAmount;
+
+            salesResponse.UserID = salesResponseDTO.UserID;
+
+            salesResponse.StoreID = salesResponseDTO.StoreID;
 
 
             _context.SaveChanges();

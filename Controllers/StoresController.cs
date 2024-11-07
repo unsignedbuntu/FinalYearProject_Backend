@@ -40,7 +40,7 @@ namespace KTUN_Final_Year_Project.Controllers
             var stores = _context.Stores
                 .Where(st => st.StoreID == id)
                 .Where(st => st.Status == true)
-                .Select(st => _mapper.Map<StoresDTO>(st))
+                .Select(st => _mapper.Map<Stores>(st))
                 .FirstOrDefault();
 
             if (stores == null)

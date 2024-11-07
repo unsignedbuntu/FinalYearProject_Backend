@@ -27,7 +27,7 @@ namespace KTUN_Final_Year_Project.Controllers
         {
             var categories = _context.Categories
                 .Where(c => c.Status == true)
-                .Select(c => _mapper.Map<CategoriesDTO>(c))
+                .Select(c => _mapper.Map<Categories>(c))
                 .ToList();
 
             return Ok(categories);
@@ -40,7 +40,7 @@ namespace KTUN_Final_Year_Project.Controllers
             var categories = _context.Categories
                  .Where(c => c.CategoryID == id)
                 .Where(c => c.Status == true)
-                .Select(c => _mapper.Map<CategoriesDTO>(c))
+                .Select(c => _mapper.Map<Categories>(c))
                 .FirstOrDefault();
 
             if (categories == null)

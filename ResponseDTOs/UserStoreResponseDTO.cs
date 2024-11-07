@@ -8,16 +8,12 @@
     {
 #nullable disable
 
+        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
+        [ForeignKey("UserID")]
         public int UserID { get; set; }
 
-        public int StoreID { get; set; }
-        
-        [ForeignKey("UserID")]
-        public virtual UsersDTO Users { get; set; }
-
         [ForeignKey("StoreID")]
-        public virtual StoresDTO Stores { get; set; }
-
-        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+        public int StoreID { get; set; }
     }
 }

@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(sd => sd.Sale)
                 .Where(sd => sd.SaleDetailID == id)
                 .Where(sd => sd.Status == true)
-                .Select(sd => _mapper.Map<SalesDetailsDTO>(sd))
+                .Select(sd => _mapper.Map<SalesDetails>(sd))
                 .FirstOrDefault();
 
             if (salesDetails == null)
@@ -93,6 +93,9 @@ namespace KTUN_Final_Year_Project.Controllers
 
             salesDetailsResponse.PriceAtSale = salesDetailsResponseDTO.PriceAtSale;
 
+            salesDetailsResponse.StoreID = salesDetailsResponseDTO.StoreID;
+
+            salesDetailsResponse.SaleID = salesDetailsResponseDTO.SaleID;
 
             _context.SaveChanges();
 

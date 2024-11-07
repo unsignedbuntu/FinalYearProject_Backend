@@ -13,12 +13,12 @@
 
         public int CustomerFeedbackID { get; set; }
 
-        public int UserID { get; set; }
+       public int UserID { get; set; }
 
         public int ProductID { get; set; }
 
         [ForeignKey("UserID")]
-        
+
         public virtual Users User { get; set; }
 
         [ForeignKey("ProductID")]

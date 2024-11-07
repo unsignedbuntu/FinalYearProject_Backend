@@ -7,21 +7,18 @@
     public class SalesResponseDTO
     {
 #nullable disable
-        
-        public int UserID { get; set; }
-
-        public int StoreID { get; set; }
-
-
-        [ForeignKey("UserID")]
-        public virtual UsersDTO Users { get; set; }
-
-        [ForeignKey("StoreID")]
-        public virtual StoresDTO Stores { get; set; }
 
         public DateTime SaleDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
         public decimal TotalAmount { get; set; }
+
+
+        [ForeignKey("UserID")]
+        public int UserID { get; set; }
+
+
+        [ForeignKey("StoreID")]
+        public int StoreID { get; set; }
 
     }
 }

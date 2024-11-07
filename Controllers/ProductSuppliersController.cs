@@ -29,7 +29,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(ps => ps.Product)
                 .Include(ps => ps.Supplier)
                 .Where(ps => ps.Status == true)
-                .Select(ps => _mapper.Map<ProductSuppliersDTO>(ps))
+                .Select(ps => _mapper.Map<ProductSuppliers>(ps))
                 .ToList();
 
             return Ok(productSuppliers);
@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(ps => ps.Supplier)
                 .Where(ps => ps.ProductSupplierID == id)
                 .Where(ps => ps.Status == true)
-                .Select(ps => _mapper.Map<ProductSuppliersDTO>(ps))
+                .Select(ps => _mapper.Map<ProductSuppliers>(ps))
                 .FirstOrDefault();
 
             if (productSuppliers == null)
@@ -92,6 +92,10 @@ namespace KTUN_Final_Year_Project.Controllers
             productSuppliersResponse.SupplyPrice = productSuppliersResponseDTO.SupplyPrice;
 
             productSuppliersResponse.SupplyDate = productSuppliersResponseDTO.SupplyDate;
+
+            productSuppliersResponse.ProductID = productSuppliersResponseDTO.ProductID;
+
+            productSuppliersResponse.SupplierID = productSuppliersResponseDTO.SupplierID;
 
             _context.SaveChanges();
 

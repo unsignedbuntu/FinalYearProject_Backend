@@ -29,7 +29,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(us => us.User)
                 .Include(us => us.Store)
                 .Where(us => us.Status == true)
-                .Select(us => _mapper.Map<UserStoreDTO>(us))
+                .Select(us => _mapper.Map<UserStore>(us))
                 .ToList();
 
             return Ok(userStore);
@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(us => us.Store)
                 .Where(us => us.UserStoreID == id)
                 .Where(us => us.Status == true)
-                .Select(us => _mapper.Map<UserStoreDTO>(us))
+                .Select(us => _mapper.Map<UserStore>(us))
                 .FirstOrDefault();
 
             if (userStore == null)
@@ -91,11 +91,16 @@ namespace KTUN_Final_Year_Project.Controllers
 
             userStoreResponse.EnrollmentDate = userStoreResponseDTO.EnrollmentDate;
 
+            userStoreResponse.UserID = userStoreResponseDTO.UserID;
+
+            userStoreResponse.StoreID = userStoreResponseDTO.StoreID;
+
 
             _context.SaveChanges();
 
             return Ok(userStoreResponse);
         }
+
 
         [HttpDelete("SoftDelete_Status{id}")]
         [Produces("application/json")]

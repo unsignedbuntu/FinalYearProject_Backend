@@ -29,7 +29,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(cf => cf.User)
                 .Include(cf => cf.Product)  
                 .Where(cf => cf.Status == true)
-                .Select(cf => _mapper.Map<CustomerFeedbackDTO>(cf))
+                .Select(cf => _mapper.Map<CustomerFeedback>(cf))
                 .ToList();
 
             return Ok(customerFeedback);
@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(cf => cf.Product)
                 .Where(cf => cf.CustomerFeedbackID == id)
                 .Where(cf => cf.Status == true)
-                .Select(cf => _mapper.Map<CustomerFeedbackDTO>(cf))
+                .Select(cf => _mapper.Map<CustomerFeedback>(cf))
                 .FirstOrDefault();
 
             if (customerFeedback == null)
@@ -94,6 +94,10 @@ namespace KTUN_Final_Year_Project.Controllers
             customerFeedbackResponse.Rating = customerFeedbackResponseDTO.Rating;
             
             customerFeedbackResponse.FeedbackDate = customerFeedbackResponseDTO.FeedbackDate;
+
+            customerFeedbackResponse.UserID = customerFeedbackResponseDTO.UserID;
+
+            customerFeedbackResponse.ProductID = customerFeedbackResponseDTO.ProductID;
 
 
             _context.SaveChanges();

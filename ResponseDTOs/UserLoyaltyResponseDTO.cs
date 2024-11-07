@@ -7,19 +7,15 @@
     public class UserLoyaltyResponseDTO
     {
 #nullable disable
-
-        public int LoyaltyProgramsID { get; set; }
-
-        public int UserID { get; set; }
-
-        [ForeignKey("LoyaltProgramsID")]
-        public virtual LoyaltyProgramsDTO LoyaltyPrograms { get; set; }
-
-        [ForeignKey("UserID")]
-        public virtual UsersDTO Users { get; set; }
-        
         public int AccumulatedPoints { get; set; } = 0;
 
         public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
+        [ForeignKey("LoyaltProgramID")]
+        public int LoyaltyProgramID { get; set; }
+
+        [ForeignKey("UserID")]
+        public int UserID { get; set; }
+
     }
 }

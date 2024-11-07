@@ -10,7 +10,7 @@
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 
-        public int LoyaltyProgramsID { get; set; }
+        public int LoyaltyProgramID { get; set; }
 
         public string ProgramName { get; set; }
 

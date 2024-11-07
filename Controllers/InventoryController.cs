@@ -28,7 +28,7 @@ namespace KTUN_Final_Year_Project.Controllers
             var inventory = _context.Inventory
                 .Include(i => i.Product)
                 .Where(i => i.Status == true)
-                .Select(i=> _mapper.Map<InventoryDTO>(i))
+                .Select(i=> _mapper.Map<Inventory>(i))
                 .ToList();
 
             return Ok(inventory);
@@ -42,7 +42,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(i => i.Product)
                 .Where(i => i.InventoryID == id)
                 .Where(i => i.Status == true)
-                .Select(i => _mapper.Map<InventoryDTO>(i))
+                .Select(i => _mapper.Map<Inventory>(i))
                 .FirstOrDefault();
 
             if (inventory== null)
@@ -87,12 +87,15 @@ namespace KTUN_Final_Year_Project.Controllers
                 return NotFound();
             }
 
-            inventoryResponse.ChangeType = (Inventory.ChangeTypeEnum)inventoryResponseDTO.ChangeType;
+         //   inventoryResponse.ChangeType = (Inventory.ChangeTypeEnum)inventoryResponseDTO.ChangeType;
+
+            inventoryResponse.ChangeType = inventoryResponseDTO.ChangeType;
 
             inventoryResponse.QuantityChanged = inventoryResponseDTO.QuantityChanged;
 
             inventoryResponse.ChangeDate = inventoryResponseDTO.ChangeDate;
 
+            inventoryResponse.ProductID = inventoryResponseDTO.ProductID;
 
             _context.SaveChanges();
 

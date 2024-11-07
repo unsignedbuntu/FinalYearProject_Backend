@@ -12,13 +12,13 @@
 
         public int InventoryID { get; set; }
 
-        public enum ChangeTypeEnum
+      /*  public enum ChangeTypeEnum
         {
             IN,
             OUT
         }
-
-        public ChangeTypeEnum ChangeType { get; set; }
+      */
+        public string ChangeType { get; set; }
 
         public int QuantityChanged { get; set; }
 

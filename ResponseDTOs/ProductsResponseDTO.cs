@@ -7,17 +7,6 @@
     public class ProductsResponseDTO
     {
 #nullable disable
-        public int StoreID { get; set; }
-
-        public int CategoryID { get; set; }
-
-        [ForeignKey("StoreID")]
-
-        public virtual StoresDTO Stores { get; set; }
-
-        [ForeignKey("CategoryID")]
-
-        public virtual CategoriesDTO Categories { get; set; }
 
         public string ProductName { get; set; }
 
@@ -25,5 +14,12 @@
         public int StockQuantity { get; set; }
         public string Barcode { get; set; }
 
+        [ForeignKey("StoreID")]
+
+        public int StoreID { get; set; }
+
+        [ForeignKey("CategoryID")]
+
+        public int CategoryID { get; set; }
     }
 }

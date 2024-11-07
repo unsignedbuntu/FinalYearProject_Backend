@@ -11,16 +11,13 @@
 
         public decimal PriceAtSale { get; set; }
 
-        public int StoreID { get; set; }
-
-        public int SaleID { get; set; }
 
         [ForeignKey("StoreID")]
-        public virtual StoresDTO Stores { get; set; }
+        public int StoreID { get; set; }
 
         [ForeignKey("SaleID")]
 
-        public virtual SalesDTO Sales { get; set; }
+        public int SaleID { get; set; }
 
     }
 }

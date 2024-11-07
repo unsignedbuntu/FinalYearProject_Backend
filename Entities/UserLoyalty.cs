@@ -29,5 +29,7 @@
         public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
         public bool Status { get; set; } = true;
+
+        public UserLoyalty() { }
     }
 }

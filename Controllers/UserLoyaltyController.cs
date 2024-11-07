@@ -44,7 +44,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 .Include(ul => ul.User)
                 .Where(ul => ul.UserLoyaltyID == id)
                 .Where(ul => ul.Status == true)
-                .Select(ul => _mapper.Map<UserLoyaltyDTO>(ul))
+                .Select(ul => _mapper.Map<UserLoyalty>(ul))
                 .FirstOrDefault();
 
             if (userLoyalty == null)
@@ -93,6 +93,9 @@ namespace KTUN_Final_Year_Project.Controllers
 
             userLoyaltyResponse.EnrollmentDate = userLoyaltyResponseDTO.EnrollmentDate;
 
+            userLoyaltyResponse.LoyaltyProgramID = userLoyaltyResponseDTO.LoyaltyProgramID;
+
+            userLoyaltyResponse.UserID = userLoyaltyResponseDTO.UserID;
 
             _context.SaveChanges();
 

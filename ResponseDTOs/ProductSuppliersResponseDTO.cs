@@ -8,19 +8,15 @@
     {
 #nullable disable
 
-        public int ProductID { get; set; }
-
-        public int SupplierID { get; set; }
-
-        [ForeignKey("ProductID")]
-        public virtual ProductsDTO Products { get; set; }
-
-        [ForeignKey("SupplierID")]
-
-        public virtual SuppliersDTO Suppliers { get; set; }
-
         public decimal SupplyPrice { get; set; }
 
         public DateTime SupplyDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
+        [ForeignKey("ProductID")]
+        public int ProductID { get; set; }
+
+        [ForeignKey("SupplierID")]
+
+        public int SupplierID { get; set; }
     }
 }
