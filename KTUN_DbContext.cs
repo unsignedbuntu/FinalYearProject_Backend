@@ -27,9 +27,9 @@
 
         public DbSet<Products> Products { get; set; }
 
-        public DbSet<Stores> Stores { get; set; }
-
         public DbSet<Categories> Categories { get; set; }
+
+        public DbSet<Stores> Stores { get; set; }
 
         public DbSet<Suppliers> Suppliers { get; set; }
 
@@ -73,11 +73,11 @@
             Modelbuilder.Entity<Products>().HasKey(p => p.ProductID);
             Modelbuilder.Entity<Products>().ToTable("Products");
 
-            Modelbuilder.Entity<Stores>().HasKey(st => st.StoreID);
-            Modelbuilder.Entity<Stores>().ToTable("Stores");
-
             Modelbuilder.Entity<Categories>().HasKey(c => c.CategoryID);
             Modelbuilder.Entity<Categories>().ToTable("Categories");
+
+            Modelbuilder.Entity<Stores>().HasKey(st => st.StoreID);
+            Modelbuilder.Entity<Stores>().ToTable("Stores");
 
             Modelbuilder.Entity<Suppliers>().HasKey(su => su.SupplierID);
             Modelbuilder.Entity<Suppliers>().ToTable("Suppliers");
@@ -200,7 +200,10 @@
             .WithMany()
             .HasForeignKey(p => p.CategoryID);
 
-
+            Modelbuilder.Entity<Categories>()
+                .HasOne(c => c.Store)
+                .WithMany()
+                .HasForeignKey(c => c.StoreID);
 
             base.OnModelCreating(Modelbuilder);
         }

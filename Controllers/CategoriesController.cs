@@ -10,7 +10,8 @@ namespace KTUN_Final_Year_Project.Controllers
 {
 
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
+
     public class CategoriesController : ControllerBase
     {
         private readonly KTUN_DbContext _context;
@@ -26,6 +27,7 @@ namespace KTUN_Final_Year_Project.Controllers
         public IActionResult GetCategories()
         {
             var categories = _context.Categories
+                .Include(c => c.Store)
                 .Where(c => c.Status == true)
                 .Select(c => _mapper.Map<Categories>(c))
                 .ToList();
@@ -38,6 +40,7 @@ namespace KTUN_Final_Year_Project.Controllers
         public IActionResult GetCategoriesByID(int id)
         {
             var categories = _context.Categories
+                .Include(c => c.Store)
                  .Where(c => c.CategoryID == id)
                 .Where(c => c.Status == true)
                 .Select(c => _mapper.Map<Categories>(c))
@@ -86,8 +89,8 @@ namespace KTUN_Final_Year_Project.Controllers
             }
 
             categoriesResponse.CategoryName = categoriesResponseDTO.CategoryName;
-       
 
+            categoriesResponse.StoreID = categoriesResponseDTO.StoreID;
 
             _context.SaveChanges();
 

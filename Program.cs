@@ -11,8 +11,10 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add AutoMapper service
 builder.Services.AddAutoMapper(typeof(Program));
 
+// Configure CORS to allow all origins, methods, and headers
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -22,22 +24,20 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader());
 });
 
+// Configure JSON serialization options
 builder.Services.AddControllers().AddJsonOptions(opt =>
 {
     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-
 });
 
+// Add API documentation with Swagger
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
     options.CustomSchemaIds(type => type.ToString());
-
 });
-
-
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -47,27 +47,39 @@ builder.Services.AddSwaggerGen(c =>
     c.MapType<object>(() => new OpenApiSchema { Type = "object" });
 });
 
+// Configure Entity Framework Core with SQL Server
 var connectionString = builder.Configuration.GetConnectionString("KTUN_DbContext");
 
+// Modify the connection string to include TrustServerCertificate=True
 builder.Services.AddDbContext<KTUN_DbContext>(options =>
-  options.UseSqlServer(builder.Configuration.GetConnectionString("KTUN_DbContext") ?? throw new InvalidOperationException("Connection string 'KTUN_DbContext' not found in configuration.")));
+    options.UseSqlServer(connectionString + ";TrustServerCertificate=True;" ?? throw new InvalidOperationException("Connection string 'KTUN_DbContext' not found in configuration.")));
+
+// For development purposes, allow insecure SSL connections (dangerous for production)
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.HttpClientHandler.DangerousAcceptAnyServerCertificateValidator", builder.Environment.IsDevelopment());
 
 var app = builder.Build();
 
+// Use the configured CORS policy
 app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
+    // Enable Swagger in development environment
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "KTUN API");
-
     });
+
+    app.UseHttpsRedirection(); // Comment this out for local testing
 }
 
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
-app.Run();
 
+// Enable authorization
+app.UseAuthorization();
+
+// Map controllers
+app.MapControllers();
+
+// Run the application
+app.Run();

@@ -16,6 +16,6 @@
 
         public bool Status { get; set; } = true;
 
-        public CategoriesDTO() { }
+        public virtual StoresDTO Stores { get; set; }
     }
 }

@@ -8,6 +8,5 @@
 #nullable disable
         public string StoreName { get; set; }
 
-        public string StoreType { get; set; }
     }
 }

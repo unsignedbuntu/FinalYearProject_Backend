@@ -11,8 +11,6 @@
 
         public int ProductSupplierID { get; set; }
 
-        public decimal SupplyPrice { get; set; }
-
         public DateTime SupplyDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
         public bool Status { get; set; } = true;

@@ -89,8 +89,6 @@ namespace KTUN_Final_Year_Project.Controllers
                 return NotFound();
             }
 
-            productSuppliersResponse.SupplyPrice = productSuppliersResponseDTO.SupplyPrice;
-
             productSuppliersResponse.SupplyDate = productSuppliersResponseDTO.SupplyDate;
 
             productSuppliersResponse.ProductID = productSuppliersResponseDTO.ProductID;

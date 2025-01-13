@@ -13,6 +13,11 @@
 
         public int CategoryID { get; set; }
 
+        public int StoreID { get; set; }
+
+        [ForeignKey("StoreID")]
+        public virtual Stores Store { get; set; }
+
         public string CategoryName { get; set; }
 
         public bool Status { get; set; } = true;

@@ -17,13 +17,7 @@
         [ForeignKey("ProductID")]
         
         public virtual Products Product {  get; set; }
-
-     /*   public enum ChangeTypeEnum
-        {
-            IN,
-            OUT
-        }
-       */ 
+ 
         public string ChangeType { get; set; }
 
         public int QuantityChanged { get; set; }

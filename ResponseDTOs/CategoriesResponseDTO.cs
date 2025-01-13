@@ -7,5 +7,9 @@
     {
 #nullable disable
         public string CategoryName { get; set; }
+
+        [ForeignKey("StoreID")]
+
+        public int StoreID { get; set; }
     }
 }

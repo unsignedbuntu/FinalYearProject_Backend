@@ -14,8 +14,6 @@
 
         public string StoreName { get; set; }
 
-        public string StoreType { get; set; }
-
         public bool Status { get; set; } = true;
 
         public Stores() { }

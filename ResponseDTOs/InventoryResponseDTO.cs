@@ -10,8 +10,9 @@
 
         /* public enum ChangeTypeEnum
          {
-             IN,
-             OUT
+             OUT OF STOCK,
+             IN STOCK,
+             LIMITED STOCK
          }
         */
         public string ChangeType { get; set; }

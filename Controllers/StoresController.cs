@@ -87,8 +87,6 @@ namespace KTUN_Final_Year_Project.Controllers
 
             storesResponse.StoreName = storesResponseDTO.StoreName;
 
-            storesResponse.StoreType = storesResponseDTO.StoreType;
-
 
             _context.SaveChanges();
 
