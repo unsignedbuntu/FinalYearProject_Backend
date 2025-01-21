@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KTUN_Final_Year_Project.Migrations
 {
     [DbContext(typeof(KTUN_DbContext))]
-    [Migration("20250113174605_Final_Version")]
-    partial class Final_Version
+    [Migration("20250120234617_ImageCacheUpdated")]
+    partial class ImageCacheUpdated
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -82,6 +82,36 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.HasIndex("UserID");
 
                     b.ToTable("CustomerFeedback", (string)null);
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.ImageCache", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("HashValue")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("Image")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("PageID")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Prompt")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("ImageCache", (string)null);
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Inventory", b =>

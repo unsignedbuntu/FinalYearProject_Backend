@@ -81,6 +81,36 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.ToTable("CustomerFeedback", (string)null);
                 });
 
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.ImageCache", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("HashValue")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("Image")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("PageID")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Prompt")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("ImageCache", (string)null);
+                });
+
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Inventory", b =>
                 {
                     b.Property<int>("InventoryID")

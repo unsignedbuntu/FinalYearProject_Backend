@@ -97,6 +97,9 @@ namespace KTUN_Final_Year_Project.Mapper // Replace with your namespace
             CreateMap<LoyaltyProgramsResponseDTO, LoyaltyPrograms>();
             CreateMap<LoyaltyPrograms, LoyaltyProgramsResponseDTO>();
 
+            CreateMap<ImageCacheResponseDTO, ImageCache>();
+            CreateMap<ImageCache, ImageCacheResponseDTO>();
+
         }
     }
 }

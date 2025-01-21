@@ -34,7 +34,8 @@
         public DbSet<Suppliers> Suppliers { get; set; }
 
         public DbSet<LoyaltyPrograms> LoyaltyPrograms { get; set; }
-
+        
+        public DbSet<ImageCache> ImageCache { get; set; }
         public KTUN_DbContext(DbContextOptions<KTUN_DbContext> options) : base(options)
         {
 
@@ -85,6 +86,8 @@
             Modelbuilder.Entity<LoyaltyPrograms>().HasKey(lp => lp.LoyaltyProgramID);
             Modelbuilder.Entity<LoyaltyPrograms>().ToTable("LoyaltyPrograms");
 
+            Modelbuilder.Entity<ImageCache>().HasKey(ic => ic.ID);
+            Modelbuilder.Entity<ImageCache>().ToTable("ImageCache");
 
             Modelbuilder.Entity<SalesDetails>()
             .HasOne(sd => sd.Sale)

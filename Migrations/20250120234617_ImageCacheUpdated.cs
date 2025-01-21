@@ -6,11 +6,28 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KTUN_Final_Year_Project.Migrations
 {
     /// <inheritdoc />
-    public partial class Final_Version : Migration
+    public partial class ImageCacheUpdated : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "ImageCache",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PageID = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Prompt = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    Image = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    HashValue = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    Status = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImageCache", x => x.ID);
+                });
+
             migrationBuilder.CreateTable(
                 name: "LoyaltyPrograms",
                 columns: table => new
@@ -453,6 +470,9 @@ namespace KTUN_Final_Year_Project.Migrations
         {
             migrationBuilder.DropTable(
                 name: "CustomerFeedback");
+
+            migrationBuilder.DropTable(
+                name: "ImageCache");
 
             migrationBuilder.DropTable(
                 name: "Inventory");

@@ -10,7 +10,7 @@ namespace KTUN_Final_Year_Project.Controllers
 {
 
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class UserLoyaltyController : ControllerBase
     {
         private readonly KTUN_DbContext _context;
