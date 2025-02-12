@@ -2,9 +2,7 @@
 using KTUN_Final_Year_Project.DTOs;
 using KTUN_Final_Year_Project.Entities;
 using KTUN_Final_Year_Project.ResponseDTOs;
-using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+
 
 namespace KTUN_Final_Year_Project.Mapper // Replace with your namespace  
 {
