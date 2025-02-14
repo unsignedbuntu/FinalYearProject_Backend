@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Security.Cryptography;
 using KTUN_Final_Year_Project.Services;
+using Azure.Core;
 
 
 namespace KTUN_Final_Year_Project.Controllers
@@ -95,64 +96,86 @@ namespace KTUN_Final_Year_Project.Controllers
                     return BadRequest("Invalid request data");
                 }
 
-                string hashInput = imageCacheResponseDTO.Prompt;
-                string hashValue = GenerateHash(hashInput);
+                _logger.LogInformation($"Received Request: PageID={imageCacheResponseDTO.PageID}, Prompt={imageCacheResponseDTO.Prompt}, ImageSize={(imageCacheResponseDTO.Image != null ? imageCacheResponseDTO.Image.Length.ToString() : "NULL")}");
 
-                // Önce Redis'te kontrol et
-                var cachedImage = await _redisService.GetImageFromCacheAsync(hashValue);
-                if (!string.IsNullOrEmpty(cachedImage))
+                if (imageCacheResponseDTO.Image == null || imageCacheResponseDTO.Image.Length == 0)
                 {
-                    return Ok(new
-                    {
-                        success = true,
-                        image = cachedImage
-                    });
+                    _logger.LogWarning("Image field is NULL or empty. Assigning a default value.");
+                    imageCacheResponseDTO.Image = new byte[0]; // NULL hatasını önlemek için boş array ata
                 }
 
-                // Redis'te yoksa veritabanında kontrol et
-                var existingImageCache = _context.ImageCache.FirstOrDefault(ic =>
-                    ic.PageID == imageCacheResponseDTO.PageID &&
-                    ic.HashValue == hashValue);
+                // Hash'i burada hesapla
+                var hashValue = GenerateHash(imageCacheResponseDTO.Prompt);
 
-                if (existingImageCache != null)
+                // Aynı PageID ve HashValue'ya sahip kayıt var mı kontrol et
+                var existingRecord = await _context.ImageCache
+                    .FirstOrDefaultAsync(ic => ic.PageID == imageCacheResponseDTO.PageID && ic.HashValue == hashValue);
+
+                if (existingRecord != null)
                 {
-                    var base64Image = Convert.ToBase64String(existingImageCache.Image);
-                    // Veritabanından bulunan veriyi Redis'e kaydet
-                    await _redisService.SaveImageToCacheAsync(hashValue, base64Image);
-                    return Ok(new
+                    _logger.LogInformation($"Existing record found with ID: {existingRecord.ID}");
+
+                    if (existingRecord.Image == null || existingRecord.Image.Length == 0)
                     {
-                        success = true,
-                        image = base64Image
-                    });
+                        _logger.LogInformation("Existing record has no image, updating with new image");
+                        // Kayıt var ama görsel yok, güncelle
+                        existingRecord.Image = imageCacheResponseDTO.Image;
+                        existingRecord.Status = true;
+                        await _context.SaveChangesAsync();
+
+                        return Ok(new
+                        {
+                            success = true,
+                            image = Convert.ToBase64String(existingRecord.Image),
+                            message = "Kayıt güncellendi"
+                        });
+                    }
+                    else
+                    {   
+                        _logger.LogInformation("Existing record has image, returning conflict with existing image");
+                        // Kayıt ve görsel var, mevcut görseli dön
+                        return Conflict(new
+                        {
+                            success = true,
+                            image = Convert.ToBase64String(existingRecord.Image),
+                            message = "Bu kayıt zaten mevcut!"
+                        });
+                    }
                 }
 
+                _logger.LogInformation("Creating new record");
                 // Yeni kayıt oluştur
                 var imageCacheEntity = new ImageCache
                 {
                     PageID = imageCacheResponseDTO.PageID,
                     Prompt = imageCacheResponseDTO.Prompt,
+                    HashValue = hashValue,
                     Image = imageCacheResponseDTO.Image,
-                    HashValue = hashValue
                 };
 
                 _context.ImageCache.Add(imageCacheEntity);
                 await _context.SaveChangesAsync();
 
-                var newBase64Image = Convert.ToBase64String(imageCacheEntity.Image);
-                // Yeni oluşturulan veriyi Redis'e kaydet
-                await _redisService.SaveImageToCacheAsync(hashValue, newBase64Image);
-
                 return Ok(new
                 {
                     success = true,
-                    image = newBase64Image
+                    image = Convert.ToBase64String(imageCacheEntity.Image),
+                    message = "Yeni kayıt oluşturuldu"
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, error = ex.Message });
+                _logger.LogError($"Hata oluştu: {ex.Message}");
+                _logger.LogError($"Stack Trace: {ex.StackTrace}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    error = ex.Message,
+                    details = ex.StackTrace
+                });
             }
         }
+
 
         [HttpDelete("{id}")]
         [Produces("application/json")]
