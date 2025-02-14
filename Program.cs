@@ -1,11 +1,47 @@
 using KTUN_Final_Year_Project;
-using KTUN_Final_Year_Project.Services;
+using KTUN_Final_Year_Project.Entities;
+using KTUN_Final_Year_Project.Options;  // Options sýnýflarýnýn namespace'ini ekle
+using KTUN_Final_Year_Project.Services; // CertificateLoadingService'in namespace'ini ekle
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.OpenApi.Models;
+using System.Runtime.ConstrainedExecution;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Read Kestrel configuration from appsettings.json
+builder.Services.Configure<KestrelServerOptions>(builder.Configuration.GetSection("Kestrel"));
+
+// Configure Kestrel to use the specified certificate
+builder.WebHost.ConfigureKestrel((context, options) =>
+{
+    var kestrelConfig = context.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate");
+    var certPath = kestrelConfig.GetValue<string>("Path");
+    var keyPath = kestrelConfig.GetValue<string>("KeyPath");
+
+    Console.WriteLine($"Certificate Path: {certPath}");
+    Console.WriteLine($"Key Path: {keyPath}");
+
+    if (!File.Exists(certPath))
+    {
+        throw new FileNotFoundException($"Certificate file not found: {certPath}");
+    }
+
+    if (!File.Exists(keyPath))
+    {
+        throw new FileNotFoundException($"Key file not found: {keyPath}");
+    }
+
+    options.ListenAnyIP(5001, listenOptions =>
+    {
+        listenOptions.UseHttps(certPath, keyPath);
+    });
+});
+
+// Sertifika yükleme servisini ekle
+builder.Services.AddHostedService<CertificateLoadingService>();
 
 // Logging konfigürasyonu
 builder.Logging.ClearProviders();
@@ -59,9 +95,8 @@ builder.Services.AddSwaggerGen(c =>
 // Configure Entity Framework Core with SQL Server
 var connectionString = builder.Configuration.GetConnectionString("KTUN_DbContext");
 
-// Modify the connection string to include TrustServerCertificate=True
 builder.Services.AddDbContext<KTUN_DbContext>(options =>
-    options.UseSqlServer(connectionString + ";TrustServerCertificate=True;" ?? throw new InvalidOperationException("Connection string 'KTUN_DbContext' not found in configuration.")));
+    options.UseSqlServer(connectionString ?? throw new InvalidOperationException("Connection string 'KTUN_DbContext' not found in configuration.")));
 
 // Redis servisini ekle
 builder.Services.AddSingleton<IRedisService>(provider =>
@@ -95,7 +130,6 @@ app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
-
     // Enable Swagger in development environment
     app.UseSwagger();
     app.UseSwaggerUI(c =>
