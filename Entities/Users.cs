@@ -1,29 +1,27 @@
-﻿namespace KTUN_Final_Year_Project.Entities
+﻿using Microsoft.AspNetCore.Identity;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace KTUN_Final_Year_Project.Entities
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
-    public class Users
+    public class Users : IdentityUser<int>
     {
 #nullable disable
 
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        // UserID is inherited as 'Id' from IdentityUser<int>
+        // Email is inherited from IdentityUser
+        // PhoneNumber is inherited from IdentityUser
 
-        public int UserID { get; set; }
-
+        // Keep custom properties
         public string FullName { get; set; }
-
-        public string Email { get; set; }
-
-        public string PhoneNumber { get; set; }
-
-        public string Address {  get; set; }  
-
+        public string Address { get; set; }
         public string NFC_CardID { get; set; }
+        public bool Status { get; set; } = true; // Renamed from IsActive for clarity potentially? Or keep Status? Let's keep Status for now.
 
-        public bool Status { get; set; } = true;
+        // Existing unique index configuration in DbContext needs to be updated if NFC_CardID should remain unique.
 
-        public Users() { }
+        // Constructor might not be needed anymore unless for specific initialization logic.
+        // public Users() { }
     }
 }

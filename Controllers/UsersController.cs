@@ -38,7 +38,7 @@ namespace KTUN_Final_Year_Project.Controllers
         public IActionResult GetUsersByID(int id)
         {
             var users = _context.Users
-                 .Where(u => u.UserID == id)
+                 .Where(u => u.Id == id)
                 .Where(u => u.Status == true)
                 .Select(u => _mapper.Map<Users>(u))
                 .FirstOrDefault();
@@ -78,7 +78,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 return BadRequest();
             }
 
-            var usersResponse = _context.Users.FirstOrDefault(u => u.UserID == id);
+            var usersResponse = _context.Users.FirstOrDefault(u => u.Id == id);
 
             if (usersResponse == null)
             {
@@ -105,7 +105,7 @@ namespace KTUN_Final_Year_Project.Controllers
         [Produces("application/json")]
         public IActionResult SoftDeleteUsersByStatus(int id)
         {
-            var users = _context.Users.FirstOrDefault(u => u.UserID == id);
+            var users = _context.Users.FirstOrDefault(u => u.Id == id);
 
             if (users == null)
             {

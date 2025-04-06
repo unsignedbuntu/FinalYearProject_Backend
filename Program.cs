@@ -1,49 +1,68 @@
 using KTUN_Final_Year_Project;
 using KTUN_Final_Year_Project.Entities;
-using KTUN_Final_Year_Project.Options;  // Options s�n�flar�n�n namespace'ini ekle
+using KTUN_Final_Year_Project.Options;  // Options sınıflarının namespace'ini ekle
 using KTUN_Final_Year_Project.Services; // CertificateLoadingService'in namespace'ini ekle
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Runtime.ConstrainedExecution;
+using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configuration object for easy access
+var configuration = builder.Configuration;
+
+// Remove or comment out Kestrel configuration related to specific certificates
+/*
 // Read Kestrel configuration from appsettings.json
 builder.Services.Configure<KestrelServerOptions>(builder.Configuration.GetSection("Kestrel"));
 
 // Configure Kestrel to use the specified certificate
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
-    var kestrelConfig = context.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate");
+    var kestrelConfig = context.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate"); // Check if this path is still valid
     var certPath = kestrelConfig.GetValue<string>("Path");
     var keyPath = kestrelConfig.GetValue<string>("KeyPath");
 
     Console.WriteLine($"Certificate Path: {certPath}");
     Console.WriteLine($"Key Path: {keyPath}");
 
-    if (!File.Exists(certPath))
+    if (!string.IsNullOrEmpty(certPath) && !File.Exists(certPath)) // Add null/empty check
     {
         throw new FileNotFoundException($"Certificate file not found: {certPath}");
     }
 
-    if (!File.Exists(keyPath))
+    if (!string.IsNullOrEmpty(keyPath) && !File.Exists(keyPath)) // Add null/empty check
     {
         throw new FileNotFoundException($"Key file not found: {keyPath}");
     }
-
-    options.ListenAnyIP(5001, listenOptions =>
-    {
-        listenOptions.UseHttps(certPath, keyPath);
-    });
+    
+    // Default HTTPS port is often configured elsewhere (e.g., launchSettings.json)
+    // or Kestrel uses defaults if no specific endpoint is configured here.
+    // If you still need specific ports, configure them without specific certificate files.
+    // Example:
+    // options.ListenAnyIP(5001, listenOptions => listenOptions.UseHttps()); 
+    // options.ListenAnyIP(5000); // For HTTP
+    
+    // Original code trying to load PEM files:
+    // options.ListenAnyIP(5001, listenOptions =>
+    // {
+    //     listenOptions.UseHttps(certPath, keyPath);
+    // });
 });
+*/
 
-// Sertifika y�kleme servisini ekle
-builder.Services.AddHostedService<CertificateLoadingService>();
+// Sertifika yükleme servisini ekle (Bu servis PEM dosyalarıyla ilgiliyse kaldırılabilir)
+// Eğer CertificateLoadingService PEM dosyalarını yüklüyorsa, bu satırı kaldırın:
+// builder.Services.AddHostedService<CertificateLoadingService>();
 
-// Logging konfig�rasyonu
+// Logging konfigürasyonu
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -82,14 +101,30 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.CustomSchemaIds(type => type.ToString());
-});
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "KTUN API", Version = "v1" });
-    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
-    c.SupportNonNullableReferenceTypes();
-    c.MapType<object>(() => new OpenApiSchema { Type = "object" });
+    // Add JWT Authentication support to Swagger UI
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter JWT with Bearer into field",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement {
+    {
+        new OpenApiSecurityScheme
+        {
+            Reference = new OpenApiReference
+            {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+            }
+        },
+        new string[] { }
+    }
+    });
+
 });
 
 // Configure Entity Framework Core with SQL Server
@@ -97,6 +132,44 @@ var connectionString = builder.Configuration.GetConnectionString("KTUN_DbContext
 
 builder.Services.AddDbContext<KTUN_DbContext>(options =>
     options.UseSqlServer(connectionString ?? throw new InvalidOperationException("Connection string 'KTUN_DbContext' not found in configuration.")));
+
+// ---- Add Identity ----
+builder.Services.AddIdentity<Users, IdentityRole<int>>(options =>
+{
+    // Configure Identity options (e.g., password requirements) here if needed
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+    options.User.RequireUniqueEmail = true; // Ensure emails are unique
+})
+.AddEntityFrameworkStores<KTUN_DbContext>()
+.AddDefaultTokenProviders(); // Adds token providers for password reset, email confirmation etc.
+
+// ---- Add Authentication and JWT Bearer ----
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true; // Save token in AuthenticationProperties
+    options.RequireHttpsMetadata = false; // Set to true in production
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidAudience = configuration["JWT:ValidAudience"],
+        ValidIssuer = configuration["JWT:ValidIssuer"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            configuration["JWT:Secret"] ?? throw new InvalidOperationException("JWT Secret not found in configuration.")))
+    };
+});
 
 // Redis servisini ekle
 builder.Services.AddSingleton<IRedisService>(provider =>
@@ -156,7 +229,11 @@ if (app.Environment.IsDevelopment())
 // Enable routing and endpoints
 app.UseRouting();
 app.UseHttpsRedirection();
+
+// Add Authentication middleware *before* Authorization
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 // Run the application
