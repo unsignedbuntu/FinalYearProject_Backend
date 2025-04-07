@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace KTUN_Final_Year_Project.DTOs
-{
+{//
     public class LoginDto
     {
         [Required(ErrorMessage = "Email is required")]
