@@ -81,11 +81,12 @@ builder.Services.AddAutoMapper(typeof(Program));
 // Configure CORS to allow all origins, methods, and headers
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
+    options.AddPolicy("AllowNextJsApp",
         builder => builder
-            .AllowAnyOrigin()
+            .WithOrigins("https://localhost:3000")
             .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+            .AllowCredentials());
 });
 
 // Configure JSON serialization options
@@ -156,8 +157,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.SaveToken = true; // Save token in AuthenticationProperties
-    options.RequireHttpsMetadata = false; // Set to true in production
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = false;
     options.TokenValidationParameters = new TokenValidationParameters()
     {
         ValidateIssuer = true,
@@ -168,6 +169,15 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = configuration["JWT:ValidIssuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
             configuration["JWT:Secret"] ?? throw new InvalidOperationException("JWT Secret not found in configuration.")))
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            context.Token = context.Request.Cookies["authToken"];
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -199,7 +209,7 @@ app.Use(async (context, next) =>
 });
 
 // Use the configured CORS policy
-app.UseCors("AllowAll");
+app.UseCors("AllowNextJsApp");
 
 if (app.Environment.IsDevelopment())
 {

@@ -11,6 +11,8 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -101,16 +103,83 @@ namespace KTUN_Final_Year_Project.Controllers
                 
                 // Generate JWT token
                 var tokenString = await GenerateJwtToken(user);
+                var tokenExpiry = DateTime.Now.AddHours(3); // Match token expiration
 
+                // Token'ı HTTP-only çereze ekle
+                Response.Cookies.Append("authToken", tokenString, new CookieOptions
+                {
+                 HttpOnly = true,
+                Secure = false, // false olduğundan emin ol veya bu satırı kaldır
+                 Expires = tokenExpiry,
+                SameSite = SameSiteMode.Lax, // Lax kalsın
+                Path = "/"
+                });
+
+                // Token yerine temel kullanıcı bilgilerini döndür (opsiyonel)
                 return Ok(new
                 {
-                    token = tokenString,
-                    expiration = DateTime.Now.AddHours(3) // Match token expiration
+                    Status = "Success",
+                    Message = "Login successful.",
+                    User = new // Frontend'in ihtiyaç duyabileceği bilgiler
+                    {
+                        Id = user.Id,
+                        Email = user.Email,
+                        FullName = user.FullName
+                        // İhtiyaç varsa diğer roller vs. eklenebilir
+                    }
                 });
             }
 
             // If login fails
             return Unauthorized(new { Status = "Error", Message = "Invalid email or password." });
+        }
+
+        // GET: api/Auth/Me
+        [Authorize] // Bu endpoint'e erişim için geçerli bir çerez (token) gerekir
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            // [Authorize] attribute'u sayesinde User.Identity'nin dolu olacağını varsayabiliriz
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+            {
+                // Bu durum normalde [Authorize] nedeniyle oluşmamalı, ama bir güvenlik kontrolü
+                return Unauthorized(new { Status = "Error", Message = "User not identified." });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null || !user.Status)
+            {
+                // Kullanıcı bulunamadı veya pasif
+                return NotFound(new { Status = "Error", Message = "User not found or inactive." });
+            }
+
+            // Kullanıcı bilgilerini döndür
+            return Ok(new
+            {
+                Status = "Success",
+                User = new
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    // Gerekirse roller veya diğer bilgiler eklenebilir
+                }
+            });
+        }
+
+        // POST: api/Auth/Logout
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("authToken", new CookieOptions
+            {
+            HttpOnly = true,
+            Secure = false, // false olduğundan emin ol veya bu satırı kaldır
+            SameSite = SameSiteMode.Lax, // Lax kalsın
+            Path = "/"
+            });
+            return Ok(new { Status = "Success", Message = "Logged out successfully." });
         }
 
         // Helper method for JWT generation
