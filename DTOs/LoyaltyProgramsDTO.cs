@@ -3,22 +3,21 @@
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+
     public class LoyaltyProgramsDTO
     {
 #nullable disable
-
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-
-        public int LoyaltyProgramID { get; set; }
-
+        [Required]
+        [MaxLength(100)]
         public string ProgramName { get; set; }
 
+        [Required]
+        [Column(TypeName = "decimal(5,2)")]
+        [Range(0, 100, ErrorMessage = "İndirim oranı 0-100 arasında olmalıdır.")]
         public decimal DiscountRate { get; set; }
 
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Puan çarpanı en az 1 olmalıdır.")]
         public int PointsMultiplier { get; set; }
-
-        public bool Status { get; set; } = true;
-
     }
 }

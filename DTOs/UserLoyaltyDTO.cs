@@ -2,24 +2,18 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class UserLoyaltyDTO
     {
 #nullable disable
+        [Required]
+        public int UserID { get; set; }
 
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Required]
+        public int LoyaltyProgramID { get; set; }
 
-        public int UserLoyaltyID { get; set; }
-
+        [Required]
+        [Range(0, int.MaxValue)]
         public int AccumulatedPoints { get; set; } = 0;
-
-        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public bool Status { get; set; } = true;
-
-        public virtual LoyaltyProgramsDTO LoyaltyPrograms { get; set; }
-
-        public virtual UsersDTO Users { get; set; }
     }
 }

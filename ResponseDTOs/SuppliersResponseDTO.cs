@@ -1,13 +1,18 @@
 ﻿namespace KTUN_Final_Year_Project.ResponseDTOs
 {
     using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+    
     public class SuppliersResponseDTO
     {
-#nullable disable
-        public String SupplierName { get; set; }
+        public int SupplierID { get; set; }
+        
+        public string SupplierName { get; set; } = string.Empty;
+        
+        public string? ContactEmail { get; set; }
+        
+        public bool Status { get; set; }
 
-        public String ContactEmail { get; set; }
+        // İlişkili Ürün Sayısı
+        public int ProductCount { get; set; }
     }
 }

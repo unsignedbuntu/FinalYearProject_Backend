@@ -2,23 +2,22 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Collections.Generic;
+
     public class SalesDTO
     {
 #nullable disable
+        [Required]
+        public int UserID { get; set; }
 
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SaleID { get; set; }
+        [Required]
+        public int StoreID { get; set; }
 
-        public DateTime SaleDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
+        [Required]
+        [Range(0, double.MaxValue, ErrorMessage = "Toplam tutar 0 veya daha büyük olmalıdır.")]
         public decimal TotalAmount { get; set; }
-
-        public bool Status { get; set; } = true;
-
-        public virtual UsersDTO Users { get; set; }
-
-        public virtual StoresDTO Stores { get; set; }
+        
+        // Satış detayları koleksiyonu
+        public List<SalesDetailsDTO> SalesDetails { get; set; }
     }
 }

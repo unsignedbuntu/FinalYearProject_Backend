@@ -1,12 +1,18 @@
 ﻿namespace KTUN_Final_Year_Project.ResponseDTOs
 {
     using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Collections.Generic;
+
     public class StoresResponseDTO
     {
-#nullable disable
-        public string StoreName { get; set; }
+        public int StoreID { get; set; }
+        
+        public string StoreName { get; set; } = string.Empty;
+        
+        public bool Status { get; set; }
 
+        // İlişki Bilgileri (Countlar için)
+        public int ProductCount { get; set; }
+        public int CategoryCount { get; set; }
     }
 }

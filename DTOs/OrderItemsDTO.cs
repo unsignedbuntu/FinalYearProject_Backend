@@ -1,19 +1,16 @@
-﻿namespace KTUN_Final_Year_Project.DTOs
+namespace KTUN_Final_Year_Project.DTOs
 {
     using System;
     using System.ComponentModel.DataAnnotations;
 
-    public class SalesDetailsDTO
+    public class OrderItemsDTO
     {
 #nullable disable
         [Required]
-        public int SaleID { get; set; }
+        public int OrderID { get; set; }
 
         [Required]
         public int ProductID { get; set; }
-
-        [Required]
-        public int StoreID { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Miktar en az 1 olmalıdır.")]
@@ -21,6 +18,6 @@
 
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Fiyat 0'dan büyük olmalıdır.")]
-        public decimal PriceAtSale { get; set; }
+        public decimal PriceAtPurchase { get; set; }
     }
-}
+} 

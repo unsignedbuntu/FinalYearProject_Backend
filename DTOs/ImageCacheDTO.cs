@@ -2,21 +2,17 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class ImageCacheDTO
     {
 #nullable disable
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int ID { get; set; }
-
+        [MaxLength(100)]
         public string PageID { get; set; }
+
+        [Required]
         public string Prompt { get; set; }
-        public byte[] Image { get; set; } // Binary formatta resim verisi
 
-        [StringLength(64)]
-        public string HashValue { get; set; } // Prompt + negative prompt hash'i
-
-        public bool Status { get; set; } = true;
+        [Required]
+        public byte[] Image { get; set; }
     }
 }

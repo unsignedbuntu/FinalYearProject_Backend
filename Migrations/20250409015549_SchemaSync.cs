@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KTUN_Final_Year_Project.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialDatabaseSetup : Migration
+    public partial class SchemaSync : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,11 +32,11 @@ namespace KTUN_Final_Year_Project.Migrations
                 {
                     ID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PageID = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PageID = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Prompt = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Image = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
                     HashValue = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -49,10 +49,10 @@ namespace KTUN_Final_Year_Project.Migrations
                 {
                     LoyaltyProgramID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProgramName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DiscountRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ProgramName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    DiscountRate = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
                     PointsMultiplier = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -65,8 +65,8 @@ namespace KTUN_Final_Year_Project.Migrations
                 {
                     StoreID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    StoreName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    StoreName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -79,9 +79,9 @@ namespace KTUN_Final_Year_Project.Migrations
                 {
                     SupplierID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SupplierName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ContactEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    SupplierName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ContactEmail = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -96,8 +96,8 @@ namespace KTUN_Final_Year_Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    NFC_CardID = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    Status = table.Column<bool>(type: "bit", nullable: false),
+                    NFC_CardID = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -146,8 +146,8 @@ namespace KTUN_Final_Year_Project.Migrations
                     CategoryID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StoreID = table.Column<int>(type: "int", nullable: false),
-                    CategoryName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    CategoryName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -156,8 +156,7 @@ namespace KTUN_Final_Year_Project.Migrations
                         name: "FK_Categories_Stores_StoreID",
                         column: x => x.StoreID,
                         principalTable: "Stores",
-                        principalColumn: "StoreID",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "StoreID");
                 });
 
             migrationBuilder.CreateTable(
@@ -246,6 +245,29 @@ namespace KTUN_Final_Year_Project.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    OrderID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserID = table.Column<int>(type: "int", nullable: false),
+                    OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Pending"),
+                    ShippingAddress = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.OrderID);
+                    table.ForeignKey(
+                        name: "FK_Orders_Users_UserID",
+                        column: x => x.UserID,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Sales",
                 columns: table => new
                 {
@@ -253,9 +275,9 @@ namespace KTUN_Final_Year_Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserID = table.Column<int>(type: "int", nullable: false),
                     StoreID = table.Column<int>(type: "int", nullable: false),
-                    SaleDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SaleDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -264,10 +286,32 @@ namespace KTUN_Final_Year_Project.Migrations
                         name: "FK_Sales_Stores_StoreID",
                         column: x => x.StoreID,
                         principalTable: "Stores",
-                        principalColumn: "StoreID",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "StoreID");
                     table.ForeignKey(
                         name: "FK_Sales_Users_UserID",
+                        column: x => x.UserID,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupportMessages",
+                columns: table => new
+                {
+                    MessageID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserID = table.Column<int>(type: "int", nullable: false),
+                    Subject = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Open")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupportMessages", x => x.MessageID);
+                    table.ForeignKey(
+                        name: "FK_SupportMessages_Users_UserID",
                         column: x => x.UserID,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -282,9 +326,9 @@ namespace KTUN_Final_Year_Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserID = table.Column<int>(type: "int", nullable: false),
                     LoyaltyProgramID = table.Column<int>(type: "int", nullable: false),
-                    AccumulatedPoints = table.Column<int>(type: "int", nullable: false),
-                    EnrollmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    AccumulatedPoints = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    EnrollmentDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -307,16 +351,15 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "UserStore",
                 columns: table => new
                 {
-                    UserStoreID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserID = table.Column<int>(type: "int", nullable: false),
                     StoreID = table.Column<int>(type: "int", nullable: false),
-                    EnrollmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    UserStoreID = table.Column<int>(type: "int", nullable: false),
+                    EnrollmentDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserStore", x => x.UserStoreID);
+                    table.PrimaryKey("PK_UserStore", x => new { x.UserID, x.StoreID });
                     table.ForeignKey(
                         name: "FK_UserStore_Stores_StoreID",
                         column: x => x.StoreID,
@@ -337,13 +380,13 @@ namespace KTUN_Final_Year_Project.Migrations
                 {
                     ProductID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ProductName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     StoreID = table.Column<int>(type: "int", nullable: false),
                     CategoryID = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
                     StockQuantity = table.Column<int>(type: "int", nullable: false),
-                    Barcode = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    Barcode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -352,73 +395,12 @@ namespace KTUN_Final_Year_Project.Migrations
                         name: "FK_Products_Categories_CategoryID",
                         column: x => x.CategoryID,
                         principalTable: "Categories",
-                        principalColumn: "CategoryID",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "CategoryID");
                     table.ForeignKey(
                         name: "FK_Products_Stores_StoreID",
                         column: x => x.StoreID,
                         principalTable: "Stores",
-                        principalColumn: "StoreID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SalesDetails",
-                columns: table => new
-                {
-                    SaleDetailID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SaleID = table.Column<int>(type: "int", nullable: false),
-                    StoreID = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<int>(type: "int", nullable: false),
-                    PriceAtSale = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SalesDetails", x => x.SaleDetailID);
-                    table.ForeignKey(
-                        name: "FK_SalesDetails_Sales_SaleID",
-                        column: x => x.SaleID,
-                        principalTable: "Sales",
-                        principalColumn: "SaleID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SalesDetails_Stores_StoreID",
-                        column: x => x.StoreID,
-                        principalTable: "Stores",
-                        principalColumn: "StoreID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CustomerFeedback",
-                columns: table => new
-                {
-                    CustomerFeedbackID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserID = table.Column<int>(type: "int", nullable: false),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    FeedbackText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Rating = table.Column<int>(type: "int", nullable: false),
-                    FeedbackDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CustomerFeedback", x => x.CustomerFeedbackID);
-                    table.ForeignKey(
-                        name: "FK_CustomerFeedback_Products_ProductID",
-                        column: x => x.ProductID,
-                        principalTable: "Products",
-                        principalColumn: "ProductID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CustomerFeedback_Users_UserID",
-                        column: x => x.UserID,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "StoreID");
                 });
 
             migrationBuilder.CreateTable(
@@ -428,10 +410,10 @@ namespace KTUN_Final_Year_Project.Migrations
                     InventoryID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ProductID = table.Column<int>(type: "int", nullable: false),
-                    ChangeType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ChangeType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     QuantityChanged = table.Column<int>(type: "int", nullable: false),
-                    ChangeDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    ChangeDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -445,6 +427,33 @@ namespace KTUN_Final_Year_Project.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "OrderItems",
+                columns: table => new
+                {
+                    OrderItemID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderID = table.Column<int>(type: "int", nullable: false),
+                    ProductID = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    PriceAtPurchase = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrderItems", x => x.OrderItemID);
+                    table.ForeignKey(
+                        name: "FK_OrderItems_Orders_OrderID",
+                        column: x => x.OrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrderItems_Products_ProductID",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductRecommendations",
                 columns: table => new
                 {
@@ -452,8 +461,8 @@ namespace KTUN_Final_Year_Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserID = table.Column<int>(type: "int", nullable: false),
                     ProductID = table.Column<int>(type: "int", nullable: false),
-                    RecommendationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    RecommendationDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -480,8 +489,8 @@ namespace KTUN_Final_Year_Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ProductID = table.Column<int>(type: "int", nullable: false),
                     SupplierID = table.Column<int>(type: "int", nullable: false),
-                    SupplyDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false)
+                    SupplyDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -498,6 +507,69 @@ namespace KTUN_Final_Year_Project.Migrations
                         principalTable: "Suppliers",
                         principalColumn: "SupplierID",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Reviews",
+                columns: table => new
+                {
+                    ReviewID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserID = table.Column<int>(type: "int", nullable: false),
+                    ProductID = table.Column<int>(type: "int", nullable: false),
+                    Rating = table.Column<int>(type: "int", nullable: false),
+                    Comment = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
+                    ReviewDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Reviews", x => x.ReviewID);
+                    table.ForeignKey(
+                        name: "FK_Reviews_Products_ProductID",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Reviews_Users_UserID",
+                        column: x => x.UserID,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SalesDetails",
+                columns: table => new
+                {
+                    SaleDetailID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SaleID = table.Column<int>(type: "int", nullable: false),
+                    StoreID = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    PriceAtSale = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    ProductsProductID = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SalesDetails", x => x.SaleDetailID);
+                    table.ForeignKey(
+                        name: "FK_SalesDetails_Products_ProductsProductID",
+                        column: x => x.ProductsProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                    table.ForeignKey(
+                        name: "FK_SalesDetails_Sales_SaleID",
+                        column: x => x.SaleID,
+                        principalTable: "Sales",
+                        principalColumn: "SaleID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SalesDetails_Stores_StoreID",
+                        column: x => x.StoreID,
+                        principalTable: "Stores",
+                        principalColumn: "StoreID");
                 });
 
             migrationBuilder.CreateIndex(
@@ -533,19 +605,31 @@ namespace KTUN_Final_Year_Project.Migrations
                 column: "StoreID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CustomerFeedback_ProductID",
-                table: "CustomerFeedback",
-                column: "ProductID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CustomerFeedback_UserID",
-                table: "CustomerFeedback",
-                column: "UserID");
+                name: "IX_ImageCache_HashValue",
+                table: "ImageCache",
+                column: "HashValue",
+                unique: true,
+                filter: "[HashValue] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Inventory_ProductID",
                 table: "Inventory",
                 column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderItems_OrderID",
+                table: "OrderItems",
+                column: "OrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderItems_ProductID",
+                table: "OrderItems",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_UserID",
+                table: "Orders",
+                column: "UserID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductRecommendations_ProductID",
@@ -556,6 +640,13 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "IX_ProductRecommendations_UserID",
                 table: "ProductRecommendations",
                 column: "UserID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_Barcode",
+                table: "Products",
+                column: "Barcode",
+                unique: true,
+                filter: "[Barcode] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_CategoryID",
@@ -578,6 +669,16 @@ namespace KTUN_Final_Year_Project.Migrations
                 column: "SupplierID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Reviews_ProductID",
+                table: "Reviews",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reviews_UserID",
+                table: "Reviews",
+                column: "UserID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Sales_StoreID",
                 table: "Sales",
                 column: "StoreID");
@@ -588,6 +689,11 @@ namespace KTUN_Final_Year_Project.Migrations
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SalesDetails_ProductsProductID",
+                table: "SalesDetails",
+                column: "ProductsProductID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SalesDetails_SaleID",
                 table: "SalesDetails",
                 column: "SaleID");
@@ -596,6 +702,11 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "IX_SalesDetails_StoreID",
                 table: "SalesDetails",
                 column: "StoreID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportMessages_UserID",
+                table: "SupportMessages",
+                column: "UserID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserLoyalty_LoyaltyProgramID",
@@ -613,13 +724,6 @@ namespace KTUN_Final_Year_Project.Migrations
                 column: "NormalizedEmail");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Users_NFC_CardID",
-                table: "Users",
-                column: "NFC_CardID",
-                unique: true,
-                filter: "[NFC_CardID] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
                 table: "Users",
                 column: "NormalizedUserName",
@@ -630,11 +734,6 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "IX_UserStore_StoreID",
                 table: "UserStore",
                 column: "StoreID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserStore_UserID",
-                table: "UserStore",
-                column: "UserID");
         }
 
         /// <inheritdoc />
@@ -656,13 +755,13 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "CustomerFeedback");
-
-            migrationBuilder.DropTable(
                 name: "ImageCache");
 
             migrationBuilder.DropTable(
                 name: "Inventory");
+
+            migrationBuilder.DropTable(
+                name: "OrderItems");
 
             migrationBuilder.DropTable(
                 name: "ProductRecommendations");
@@ -671,7 +770,13 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "ProductSuppliers");
 
             migrationBuilder.DropTable(
+                name: "Reviews");
+
+            migrationBuilder.DropTable(
                 name: "SalesDetails");
+
+            migrationBuilder.DropTable(
+                name: "SupportMessages");
 
             migrationBuilder.DropTable(
                 name: "UserLoyalty");
@@ -683,10 +788,13 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "Products");
+                name: "Orders");
 
             migrationBuilder.DropTable(
                 name: "Suppliers");
+
+            migrationBuilder.DropTable(
+                name: "Products");
 
             migrationBuilder.DropTable(
                 name: "Sales");

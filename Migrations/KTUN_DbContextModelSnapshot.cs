@@ -31,10 +31,14 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryID"));
 
                     b.Property<string>("CategoryName")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("StoreID")
                         .HasColumnType("int");
@@ -44,41 +48,6 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.HasIndex("StoreID");
 
                     b.ToTable("Categories", (string)null);
-                });
-
-            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.CustomerFeedback", b =>
-                {
-                    b.Property<int>("CustomerFeedbackID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerFeedbackID"));
-
-                    b.Property<DateTime>("FeedbackDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FeedbackText")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ProductID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("Status")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("UserID")
-                        .HasColumnType("int");
-
-                    b.HasKey("CustomerFeedbackID");
-
-                    b.HasIndex("ProductID");
-
-                    b.HasIndex("UserID");
-
-                    b.ToTable("CustomerFeedback", (string)null);
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.ImageCache", b =>
@@ -97,15 +66,22 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("varbinary(max)");
 
                     b.Property<string>("PageID")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Prompt")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.HasKey("ID");
+
+                    b.HasIndex("HashValue")
+                        .IsUnique()
+                        .HasFilter("[HashValue] IS NOT NULL");
 
                     b.ToTable("ImageCache", (string)null);
                 });
@@ -119,10 +95,13 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryID"));
 
                     b.Property<DateTime>("ChangeDate")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.Property<string>("ChangeType")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
@@ -131,7 +110,9 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.HasKey("InventoryID");
 
@@ -149,20 +130,90 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LoyaltyProgramID"));
 
                     b.Property<decimal>("DiscountRate")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(5, 2)");
 
                     b.Property<int>("PointsMultiplier")
                         .HasColumnType("int");
 
                     b.Property<string>("ProgramName")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.HasKey("LoyaltyProgramID");
 
                     b.ToTable("LoyaltyPrograms", (string)null);
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.OrderItems", b =>
+                {
+                    b.Property<int>("OrderItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PriceAtPurchase")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderItemID");
+
+                    b.HasIndex("OrderID");
+
+                    b.HasIndex("ProductID");
+
+                    b.ToTable("OrderItems", (string)null);
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Orders", b =>
+                {
+                    b.Property<int>("OrderID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderID"));
+
+                    b.Property<DateTime>("OrderDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("ShippingAddress")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.ProductRecommendations", b =>
@@ -177,10 +228,14 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("RecommendationDate")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("UserID")
                         .HasColumnType("int");
@@ -206,13 +261,17 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("SupplierID")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SupplyDate")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.HasKey("ProductSupplierID");
 
@@ -232,19 +291,24 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductID"));
 
                     b.Property<string>("Barcode")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("CategoryID")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(10, 2)");
 
                     b.Property<string>("ProductName")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
@@ -254,11 +318,55 @@ namespace KTUN_Final_Year_Project.Migrations
 
                     b.HasKey("ProductID");
 
+                    b.HasIndex("Barcode")
+                        .IsUnique()
+                        .HasFilter("[Barcode] IS NOT NULL");
+
                     b.HasIndex("CategoryID");
 
                     b.HasIndex("StoreID");
 
                     b.ToTable("Products", (string)null);
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Reviews", b =>
+                {
+                    b.Property<int>("ReviewID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReviewID"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReviewDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<bool>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ReviewID");
+
+                    b.HasIndex("ProductID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("Reviews", (string)null);
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Sales", b =>
@@ -270,10 +378,14 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SaleID"));
 
                     b.Property<DateTime>("SaleDate")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("StoreID")
                         .HasColumnType("int");
@@ -304,6 +416,9 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.Property<decimal>("PriceAtSale")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<int?>("ProductsProductID")
+                        .HasColumnType("int");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -311,12 +426,16 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("StoreID")
                         .HasColumnType("int");
 
                     b.HasKey("SaleDetailID");
+
+                    b.HasIndex("ProductsProductID");
 
                     b.HasIndex("SaleID");
 
@@ -334,10 +453,14 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreID"));
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("StoreName")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("StoreID");
 
@@ -353,17 +476,62 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
 
                     b.Property<string>("ContactEmail")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("SupplierName")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("SupplierID");
 
                     b.ToTable("Suppliers", (string)null);
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.SupportMessages", b =>
+                {
+                    b.Property<int>("MessageID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageID"));
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Open");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("MessageID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("SupportMessages", (string)null);
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.UserLoyalty", b =>
@@ -375,16 +543,22 @@ namespace KTUN_Final_Year_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserLoyaltyID"));
 
                     b.Property<int>("AccumulatedPoints")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<DateTime>("EnrollmentDate")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.Property<int>("LoyaltyProgramID")
                         .HasColumnType("int");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("UserID")
                         .HasColumnType("int");
@@ -400,31 +574,30 @@ namespace KTUN_Final_Year_Project.Migrations
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.UserStore", b =>
                 {
-                    b.Property<int>("UserStoreID")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("UserID")
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserStoreID"));
-
-                    b.Property<DateTime>("EnrollmentDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("Status")
-                        .HasColumnType("bit");
 
                     b.Property<int>("StoreID")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserID")
+                    b.Property<DateTime>("EnrollmentDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<bool>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("UserStoreID")
                         .HasColumnType("int");
 
-                    b.HasKey("UserStoreID");
+                    b.HasKey("UserID", "StoreID");
 
                     b.HasIndex("StoreID");
 
-                    b.HasIndex("UserID");
-
-                    b.ToTable("UserStore", (string)null);
+                    b.ToTable("UserStore");
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Users", b =>
@@ -462,6 +635,7 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("NFC_CardID")
+                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("NormalizedEmail")
@@ -485,7 +659,9 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Status")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
@@ -495,10 +671,6 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NFC_CardID")
-                        .IsUnique()
-                        .HasFilter("[NFC_CardID] IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -647,54 +819,65 @@ namespace KTUN_Final_Year_Project.Migrations
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Categories", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Stores", "Store")
-                        .WithMany()
+                        .WithMany("Categories")
                         .HasForeignKey("StoreID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Store");
                 });
 
-            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.CustomerFeedback", b =>
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Inventory", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Products", "Product")
-                        .WithMany()
+                        .WithMany("InventoryRecords")
                         .HasForeignKey("ProductID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.OrderItems", b =>
+                {
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Orders", "Order")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Products", "Product")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("ProductID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Orders", b =>
+                {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Product");
-
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Inventory", b =>
-                {
-                    b.HasOne("KTUN_Final_Year_Project.Entities.Products", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.ProductRecommendations", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Products", "Product")
-                        .WithMany()
+                        .WithMany("ProductRecommendations")
                         .HasForeignKey("ProductID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
-                        .WithMany()
+                        .WithMany("ProductRecommendations")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -707,13 +890,13 @@ namespace KTUN_Final_Year_Project.Migrations
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.ProductSuppliers", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Products", "Product")
-                        .WithMany()
+                        .WithMany("ProductSuppliers")
                         .HasForeignKey("ProductID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Suppliers", "Supplier")
-                        .WithMany()
+                        .WithMany("ProductSuppliers")
                         .HasForeignKey("SupplierID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -726,15 +909,15 @@ namespace KTUN_Final_Year_Project.Migrations
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Products", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Categories", "Category")
-                        .WithMany()
+                        .WithMany("Products")
                         .HasForeignKey("CategoryID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Stores", "Store")
-                        .WithMany()
+                        .WithMany("Products")
                         .HasForeignKey("StoreID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Category");
@@ -742,16 +925,35 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.Navigation("Store");
                 });
 
-            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Sales", b =>
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Reviews", b =>
                 {
-                    b.HasOne("KTUN_Final_Year_Project.Entities.Stores", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreID")
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Products", "Product")
+                        .WithMany("Reviews")
+                        .HasForeignKey("ProductID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
-                        .WithMany()
+                        .WithMany("Reviews")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Sales", b =>
+                {
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Stores", "Store")
+                        .WithMany("Sales")
+                        .HasForeignKey("StoreID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
+                        .WithMany("Sales")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -763,16 +965,20 @@ namespace KTUN_Final_Year_Project.Migrations
 
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.SalesDetails", b =>
                 {
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Products", null)
+                        .WithMany("SalesDetails")
+                        .HasForeignKey("ProductsProductID");
+
                     b.HasOne("KTUN_Final_Year_Project.Entities.Sales", "Sale")
-                        .WithMany()
+                        .WithMany("SalesDetails")
                         .HasForeignKey("SaleID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Stores", "Store")
-                        .WithMany()
+                        .WithMany("SalesDetails")
                         .HasForeignKey("StoreID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Sale");
@@ -780,16 +986,27 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.SupportMessages", b =>
+                {
+                    b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
+                        .WithMany("SupportMessages")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.UserLoyalty", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.LoyaltyPrograms", "LoyaltyProgram")
-                        .WithMany()
+                        .WithMany("UserLoyaltyEntries")
                         .HasForeignKey("LoyaltyProgramID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
-                        .WithMany()
+                        .WithMany("UserLoyalty")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -802,13 +1019,13 @@ namespace KTUN_Final_Year_Project.Migrations
             modelBuilder.Entity("KTUN_Final_Year_Project.Entities.UserStore", b =>
                 {
                     b.HasOne("KTUN_Final_Year_Project.Entities.Stores", "Store")
-                        .WithMany()
+                        .WithMany("UserStores")
                         .HasForeignKey("StoreID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KTUN_Final_Year_Project.Entities.Users", "User")
-                        .WithMany()
+                        .WithMany("UserStores")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -867,6 +1084,76 @@ namespace KTUN_Final_Year_Project.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Categories", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.LoyaltyPrograms", b =>
+                {
+                    b.Navigation("UserLoyaltyEntries");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Orders", b =>
+                {
+                    b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Products", b =>
+                {
+                    b.Navigation("InventoryRecords");
+
+                    b.Navigation("OrderItems");
+
+                    b.Navigation("ProductRecommendations");
+
+                    b.Navigation("ProductSuppliers");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("SalesDetails");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Sales", b =>
+                {
+                    b.Navigation("SalesDetails");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Stores", b =>
+                {
+                    b.Navigation("Categories");
+
+                    b.Navigation("Products");
+
+                    b.Navigation("Sales");
+
+                    b.Navigation("SalesDetails");
+
+                    b.Navigation("UserStores");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Suppliers", b =>
+                {
+                    b.Navigation("ProductSuppliers");
+                });
+
+            modelBuilder.Entity("KTUN_Final_Year_Project.Entities.Users", b =>
+                {
+                    b.Navigation("Orders");
+
+                    b.Navigation("ProductRecommendations");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("Sales");
+
+                    b.Navigation("SupportMessages");
+
+                    b.Navigation("UserLoyalty");
+
+                    b.Navigation("UserStores");
                 });
 #pragma warning restore 612, 618
         }

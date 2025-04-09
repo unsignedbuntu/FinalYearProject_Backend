@@ -26,71 +26,70 @@ namespace KTUN_Final_Year_Project.Controllers
         public IActionResult GetStores()
         {
             var stores = _context.Stores
-                .Where(st => st.Status == true)
-                .Select(st => _mapper.Map<Stores>(st))
+                .Where(s => s.Status == true)
+                .Select(s => _mapper.Map<StoresResponseDTO>(s))
                 .ToList();
-
             return Ok(stores);
         }
 
         [HttpGet("{id}")]
         [Produces("application/json")]
-        public IActionResult GetStoresByID(int id)
+        public IActionResult GetStoreByID(int id)
         {
-            var stores = _context.Stores
-                .Where(st => st.StoreID == id)
-                .Where(st => st.Status == true)
-                .Select(st => _mapper.Map<Stores>(st))
+            var store = _context.Stores
+                .Where(s => s.StoreID == id && s.Status == true)
+                .Select(s => _mapper.Map<StoresResponseDTO>(s))
                 .FirstOrDefault();
 
-            if (stores == null)
+            if (store == null)
             {
                 return NotFound();
             }
 
-            return Ok(stores);
+            return Ok(store);
         }
-
 
         [HttpPost]
         [Produces("application/json")]
-        public IActionResult CreateStores([FromBody] StoresResponseDTO storesResponseDTO)
+        public IActionResult CreateStore([FromBody] StoresDTO storeDTO)
         {
-            if (storesResponseDTO == null || !ModelState.IsValid)
+            if (storeDTO == null || !ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var storesResponse = _mapper.Map<Stores>(storesResponseDTO);
+            var store = _mapper.Map<Stores>(storeDTO);
+            store.Status = true;
 
-            _context.Stores.Add(storesResponse);
+            _context.Stores.Add(store);
             _context.SaveChanges();
 
-            return Ok(storesResponse);
+            var storeResponse = _mapper.Map<StoresResponseDTO>(store);
+            return Ok(storeResponse);
         }
 
         [HttpPut("{id}")]
         [Produces("application/json")]
-        public IActionResult UpdateStores(int id, [FromBody] StoresResponseDTO storesResponseDTO)
+        public IActionResult UpdateStore(int id, [FromBody] StoresDTO storeDTO)
         {
-            if (storesResponseDTO == null)
+            if (storeDTO == null)
             {
                 return BadRequest();
             }
 
-            var storesResponse = _context.Stores.FirstOrDefault(st => st.StoreID == id);
+            var store = _context.Stores.FirstOrDefault(s => s.StoreID == id);
 
-            if (storesResponse == null)
+            if (store == null)
             {
                 return NotFound();
             }
 
-            storesResponse.StoreName = storesResponseDTO.StoreName;
-
+            store.StoreName = storeDTO.StoreName;
 
             _context.SaveChanges();
 
-            return Ok(storesResponse);
+            var storeResponse = _mapper.Map<StoresResponseDTO>(store);
+            return Ok(storeResponse);
         }
 
         [HttpDelete("SoftDelete_Status{id}")]

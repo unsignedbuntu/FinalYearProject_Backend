@@ -68,7 +68,7 @@ namespace KTUN_Final_Year_Project.Controllers
                     return NotFound();
                 }
 
-                var base64Image = Convert.ToBase64String(imageCacheEntity.Image);
+                var base64Image = Convert.ToBase64String(imageCacheEntity.Image ?? Array.Empty<byte>());
 
                 // Veritabanından alınan veriyi Redis'e kaydet
                 await _redisService.SaveImageToCacheAsync(hashValue, base64Image);
@@ -96,18 +96,29 @@ namespace KTUN_Final_Year_Project.Controllers
                     return BadRequest("Invalid request data");
                 }
 
-                _logger.LogInformation($"Received Request: PageID={imageCacheResponseDTO.PageID}, Prompt={imageCacheResponseDTO.Prompt}, ImageSize={(imageCacheResponseDTO.Image != null ? imageCacheResponseDTO.Image.Length.ToString() : "NULL")}");
+                _logger.LogInformation($"Received Request: PageID={imageCacheResponseDTO.PageID}, Prompt={imageCacheResponseDTO.Prompt}, ImageProvided={!string.IsNullOrEmpty(imageCacheResponseDTO.Base64Image)}");
 
-                if (imageCacheResponseDTO.Image == null || imageCacheResponseDTO.Image.Length == 0)
+                byte[] imageBytes;
+                if (string.IsNullOrEmpty(imageCacheResponseDTO.Base64Image))
                 {
-                    _logger.LogWarning("Image field is NULL or empty. Assigning a default value.");
-                    imageCacheResponseDTO.Image = new byte[0]; // NULL hatasını önlemek için boş array ata
+                    _logger.LogWarning("Base64Image field is NULL or empty. Cannot proceed without image data.");
+                    imageBytes = Array.Empty<byte>();
+                }
+                else
+                {
+                    try
+                    {
+                        imageBytes = Convert.FromBase64String(imageCacheResponseDTO.Base64Image);
+                    }
+                    catch (FormatException ex)
+                    {
+                        _logger.LogError($"Base64 decoding error: {ex.Message}");
+                        return BadRequest("Invalid Base64 image data.");
+                    }
                 }
 
-                // Hash'i burada hesapla
-                var hashValue = GenerateHash(imageCacheResponseDTO.Prompt);
+                var hashValue = GenerateHash(imageCacheResponseDTO.Prompt ?? string.Empty);
 
-                // Aynı PageID ve HashValue'ya sahip kayıt var mı kontrol et
                 var existingRecord = await _context.ImageCache
                     .FirstOrDefaultAsync(ic => ic.PageID == imageCacheResponseDTO.PageID && ic.HashValue == hashValue);
 
@@ -118,22 +129,20 @@ namespace KTUN_Final_Year_Project.Controllers
                     if (existingRecord.Image == null || existingRecord.Image.Length == 0)
                     {
                         _logger.LogInformation("Existing record has no image, updating with new image");
-                        // Kayıt var ama görsel yok, güncelle
-                        existingRecord.Image = imageCacheResponseDTO.Image;
+                        existingRecord.Image = imageBytes;
                         existingRecord.Status = true;
                         await _context.SaveChangesAsync();
 
                         return Ok(new
                         {
                             success = true,
-                            image = Convert.ToBase64String(existingRecord.Image),
+                            image = Convert.ToBase64String(existingRecord.Image ?? Array.Empty<byte>()),
                             message = "Kayıt güncellendi"
                         });
                     }
                     else
-                    {   
+                    {
                         _logger.LogInformation("Existing record has image, returning conflict with existing image");
-                        // Kayıt ve görsel var, mevcut görseli dön
                         return Conflict(new
                         {
                             success = true,
@@ -144,13 +153,13 @@ namespace KTUN_Final_Year_Project.Controllers
                 }
 
                 _logger.LogInformation("Creating new record");
-                // Yeni kayıt oluştur
                 var imageCacheEntity = new ImageCache
                 {
                     PageID = imageCacheResponseDTO.PageID,
                     Prompt = imageCacheResponseDTO.Prompt,
                     HashValue = hashValue,
-                    Image = imageCacheResponseDTO.Image,
+                    Image = imageBytes,
+                    Status = true
                 };
 
                 _context.ImageCache.Add(imageCacheEntity);
@@ -159,7 +168,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 return Ok(new
                 {
                     success = true,
-                    image = Convert.ToBase64String(imageCacheEntity.Image),
+                    image = Convert.ToBase64String(imageCacheEntity.Image ?? Array.Empty<byte>()),
                     message = "Yeni kayıt oluşturuldu"
                 });
             }
@@ -181,20 +190,22 @@ namespace KTUN_Final_Year_Project.Controllers
         [Produces("application/json")]
         public async Task<IActionResult> SoftDeleteImageCacheByStatus(int id)
         {
-            var imageCache = _context.ImageCache.FirstOrDefault(ic => ic.ID == id);
+            var imageCache = await _context.ImageCache.FindAsync(id);
 
             if (imageCache == null)
             {
                 return NotFound();
             }
 
-            // Redis'ten de sil
-            await _redisService.DeleteFromCacheAsync(imageCache.HashValue);
+            if (!string.IsNullOrEmpty(imageCache.HashValue))
+            {
+                await _redisService.DeleteFromCacheAsync(imageCache.HashValue);
+            }
 
             imageCache.Status = false;
             await _context.SaveChangesAsync();
 
-            return Ok(imageCache);
+            return NoContent();
         }
 
         private string GenerateHash(string input)

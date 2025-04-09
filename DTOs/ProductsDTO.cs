@@ -2,26 +2,29 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
 
     public class ProductsDTO
     {
 #nullable disable
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-
-        public int ProductID { get; set; }
-
+        [Required]
+        [MaxLength(100)]
         public string ProductName { get; set; }
+        
+        [Required]
+        public int StoreID { get; set; }
 
+        [Required]
+        public int CategoryID { get; set; }
+
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Fiyat 0'dan büyük olmalıdır.")]
         public decimal Price { get; set; }
+
+        [Required]
+        [Range(0, int.MaxValue)]
         public int StockQuantity { get; set; }
+
+        [MaxLength(50)]
         public string Barcode { get; set; }
-
-        public bool Status { get; set; } = true;
-
-        public virtual StoresDTO Stores { get; set; }
-
-        public virtual CategoriesDTO Categories { get; set; }
     }
 }

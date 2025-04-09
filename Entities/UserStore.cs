@@ -3,31 +3,29 @@
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+
+#nullable enable
     public class UserStore
     {
-#nullable disable
-
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-
-        public int UserStoreID { get; set; }
+        public int UserStoreID { get; set; } // Bu alan DB'de yok ama EF Core many-to-many için isteyebilir.
 
         public int UserID { get; set; }
 
         public int StoreID { get; set; }
 
-        [ForeignKey("UserID")]
+        public DateTime EnrollmentDate { get; set; } = DateTime.Now;
+        
+        public bool Status { get; set; } = true;
 
-        public virtual Users User { get; set; }
+        // Navigation properties
+        [ForeignKey("UserID")]
+        public virtual Users? User { get; set; }
 
         [ForeignKey("StoreID")]
-
-        public virtual Stores Store { get; set; }
-
-        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public bool Status { get; set; } = true;
+        public virtual Stores? Store { get; set; }
 
         public UserStore() { }
     }
+#nullable disable
 }

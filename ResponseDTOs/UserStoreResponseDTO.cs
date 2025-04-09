@@ -1,19 +1,22 @@
 ﻿namespace KTUN_Final_Year_Project.ResponseDTOs
 {
-    using KTUN_Final_Year_Project.DTOs;
     using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+    
     public class UserStoreResponseDTO
     {
-#nullable disable
-
-        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        [ForeignKey("UserID")]
+        public int UserStoreID { get; set; }
+        
         public int UserID { get; set; }
-
-        [ForeignKey("StoreID")]
+        
         public int StoreID { get; set; }
+        
+        public DateTime EnrollmentDate { get; set; }
+        
+        public bool Status { get; set; }
+        
+        // Kullanıcı ve mağaza bilgileri
+        public string UserFullName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public string StoreName { get; set; } = string.Empty;
     }
 }

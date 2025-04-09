@@ -26,73 +26,71 @@ namespace KTUN_Final_Year_Project.Controllers
         public IActionResult GetSuppliers()
         {
             var suppliers = _context.Suppliers
-                .Where(su => su.Status == true)
-                .Select(su => _mapper.Map<Suppliers>(su))
+                .Where(s => s.Status == true)
+                .Select(s => _mapper.Map<SuppliersResponseDTO>(s))
                 .ToList();
-
             return Ok(suppliers);
         }
 
         [HttpGet("{id}")]
         [Produces("application/json")]
-        public IActionResult GetSuppliersByID(int id)
+        public IActionResult GetSupplierByID(int id)
         {
-            var suppliers = _context.Suppliers
-                .Where(su => su.SupplierID == id)
-                .Where(su => su.Status == true)
-                .Select(su => _mapper.Map<Suppliers>(su))
+            var supplier = _context.Suppliers
+                .Where(s => s.SupplierID == id && s.Status == true)
+                .Select(s => _mapper.Map<SuppliersResponseDTO>(s))
                 .FirstOrDefault();
 
-            if (suppliers == null)
+            if (supplier == null)
             {
                 return NotFound();
             }
 
-            return Ok(suppliers);
+            return Ok(supplier);
         }
-
 
         [HttpPost]
         [Produces("application/json")]
-        public IActionResult CreateSuppliers([FromBody] SuppliersResponseDTO suppliersResponseDTO)
+        public IActionResult CreateSupplier([FromBody] SuppliersDTO supplierDTO)
         {
-            if (suppliersResponseDTO == null || !ModelState.IsValid)
+            if (supplierDTO == null || !ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var suppliersResponse = _mapper.Map<Suppliers>(suppliersResponseDTO);
+            var supplier = _mapper.Map<Suppliers>(supplierDTO);
+            supplier.Status = true;
 
-            _context.Suppliers.Add(suppliersResponse);
+            _context.Suppliers.Add(supplier);
             _context.SaveChanges();
 
-            return Ok(suppliersResponse);
+            var supplierResponse = _mapper.Map<SuppliersResponseDTO>(supplier);
+            return Ok(supplierResponse);
         }
 
         [HttpPut("{id}")]
         [Produces("application/json")]
-        public IActionResult UpdateSuppliers(int id, [FromBody] SuppliersResponseDTO suppliersResponseDTO)
+        public IActionResult UpdateSupplier(int id, [FromBody] SuppliersDTO supplierDTO)
         {
-            if (suppliersResponseDTO == null)
+            if (supplierDTO == null)
             {
                 return BadRequest();
             }
 
-            var suppliersResponse = _context.Suppliers.FirstOrDefault(su => su.SupplierID == id);
+            var supplier = _context.Suppliers.FirstOrDefault(s => s.SupplierID == id);
 
-            if (suppliersResponse == null)
+            if (supplier == null)
             {
                 return NotFound();
             }
 
-             suppliersResponse.SupplierName = suppliersResponseDTO.SupplierName;
-
-            suppliersResponse.ContactEmail = suppliersResponseDTO.ContactEmail;
-
+            supplier.SupplierName = supplierDTO.SupplierName;
+            supplier.ContactEmail = supplierDTO.ContactEmail;
 
             _context.SaveChanges();
 
-            return Ok(suppliersResponse);
+            var supplierResponse = _mapper.Map<SuppliersResponseDTO>(supplier);
+            return Ok(supplierResponse);
         }
 
         [HttpDelete("SoftDelete_Status{id}")]

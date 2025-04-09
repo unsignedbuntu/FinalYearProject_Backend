@@ -1,21 +1,25 @@
 ﻿namespace KTUN_Final_Year_Project.ResponseDTOs
 {
-    using KTUN_Final_Year_Project.DTOs;
     using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+    
     public class UserLoyaltyResponseDTO
     {
-#nullable disable
-        public int AccumulatedPoints { get; set; } = 0;
-
-        public DateTime EnrollmentDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        [ForeignKey("LoyaltProgramID")]
-        public int LoyaltyProgramID { get; set; }
-
-        [ForeignKey("UserID")]
+        public int UserLoyaltyID { get; set; }
+        
         public int UserID { get; set; }
-
+        
+        public int LoyaltyProgramID { get; set; }
+        
+        public int AccumulatedPoints { get; set; }
+        
+        public DateTime EnrollmentDate { get; set; }
+        
+        public bool Status { get; set; }
+        
+        // Kullanıcı ve program bilgileri
+        public string UserFullName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public string ProgramName { get; set; } = string.Empty;
+        public decimal DiscountRate { get; set; }
     }
 }

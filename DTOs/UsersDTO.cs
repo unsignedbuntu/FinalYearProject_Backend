@@ -1,28 +1,26 @@
 ﻿namespace KTUN_Final_Year_Project.DTOs
 {
-    using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class UsersDTO
     {
-#nullable disable
+        public int Id { get; set; } // DB şemasında PK 'Id'
+        
+        [Required]
+        [StringLength(100)]
+        public string FullName { get; set; } = default!;
 
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = default!;
 
-        public int UserID { get; set; }
+        [Phone]
+        public string? PhoneNumber { get; set; }
 
-        public string FullName { get; set; }
+        [MaxLength(255)]
+        public string? Address { get; set; }
 
-        public string Email { get; set; }
-
-        public string PhoneNumber { get; set; }
-
-        public string Address { get; set; }
-
-        public string NFC_CardID { get; set; }
-
-        public bool Status { get; set; } = true;
-
+        [StringLength(50)]
+        public string? NFC_CardID { get; set; }
     }
 }

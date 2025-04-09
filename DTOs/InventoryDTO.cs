@@ -2,24 +2,20 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class InventoryDTO
     {
 #nullable disable
+        [Required]
+        public int ProductID { get; set; }
 
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-
-        public int InventoryID { get; set; }
-
+        [MaxLength(50)]
         public string ChangeType { get; set; }
 
+        [Required]
         public int QuantityChanged { get; set; }
 
-        public DateTime ChangeDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public bool Status { get; set; } = true;
-
-        public virtual ProductsDTO Products { get; set; }
+        [MaxLength(500)]
+        public string Notes { get; set; }
     }
 }

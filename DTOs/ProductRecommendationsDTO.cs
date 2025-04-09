@@ -2,22 +2,18 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class ProductRecommendationsDTO
     {
 #nullable disable
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Required]
+        public int UserID { get; set; }
 
-        public int RecommendationID { get; set; }
+        [Required]
+        public int ProductID { get; set; }
 
-        public DateTime RecommendationDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public bool Status { get; set; } = true;
-
-        public virtual UsersDTO Users { get; set; }
-
-        public virtual ProductsDTO Products { get; set; }
-
+        [Required]
+        [Range(0.1, double.MaxValue, ErrorMessage = "Öneri gücü 0'dan büyük olmalıdır.")]
+        public decimal RecommendationStrength { get; set; } = 1.0m;
     }
 }

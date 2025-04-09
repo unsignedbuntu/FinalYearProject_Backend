@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
@@ -25,108 +24,175 @@ namespace KTUN_Final_Year_Project.Controllers
         [Produces("application/json")]
         public IActionResult GetProducts()
         {
-            var product = _context.Products
+            var products = _context.Products
                 .Include(p => p.Store)
                 .Include(p => p.Category)
+                .Include(p => p.ProductSuppliers)
+                    .ThenInclude(ps => ps.Supplier)
+                .Include(p => p.InventoryRecords)
                 .Where(p => p.Status == true)
-                .Select(p => _mapper.Map<Products>(p))
+                .Select(p => _mapper.Map<ProductsResponseDTO>(p))
                 .ToList();
-
-            return Ok(product);
+                
+            return Ok(products);
         }
 
         [HttpGet("{id}")]
         [Produces("application/json")]
-        public IActionResult GetProductsByID(int id)
+        public IActionResult GetProductByID(int id)
         {
             var product = _context.Products
                 .Include(p => p.Store)
                 .Include(p => p.Category)
-                .Where(p => p.ProductID == id)
-                .Where(p => p.Status == true)
-                .Select(p => _mapper.Map<Products>(p))
-                .FirstOrDefault();
+                .Include(p => p.ProductSuppliers)
+                    .ThenInclude(ps => ps.Supplier)
+                .Include(p => p.InventoryRecords)
+                .FirstOrDefault(p => p.ProductID == id && p.Status == true);
 
             if (product == null)
             {
                 return NotFound();
             }
 
-            return Ok(product);
+            var productResponse = _mapper.Map<ProductsResponseDTO>(product);
+            return Ok(productResponse);
         }
 
+        [HttpGet("ByCategory/{categoryId}")]
+        [Produces("application/json")]
+        public IActionResult GetProductsByCategoryID(int categoryId)
+        {
+            var products = _context.Products
+                .Include(p => p.Store)
+                .Include(p => p.Category)
+                .Include(p => p.ProductSuppliers)
+                    .ThenInclude(ps => ps.Supplier)
+                .Include(p => p.InventoryRecords)
+                .Where(p => p.CategoryID == categoryId)
+                .Where(p => p.Status == true)
+                .Select(p => _mapper.Map<ProductsResponseDTO>(p))
+                .ToList();
+
+            return Ok(products);
+        }
+
+        [HttpGet("ByStore/{storeId}")]
+        [Produces("application/json")]
+        public IActionResult GetProductsByStoreID(int storeId)
+        {
+            var products = _context.Products
+                .Include(p => p.Store)
+                .Include(p => p.Category)
+                .Include(p => p.ProductSuppliers)
+                    .ThenInclude(ps => ps.Supplier)
+                .Include(p => p.InventoryRecords)
+                .Where(p => p.StoreID == storeId)
+                .Where(p => p.Status == true)
+                .Select(p => _mapper.Map<ProductsResponseDTO>(p))
+                .ToList();
+
+            return Ok(products);
+        }
 
         [HttpPost]
         [Produces("application/json")]
-        public IActionResult CreateProducts([FromBody] ProductsResponseDTO productsResponseDTO)
+        public IActionResult CreateProduct([FromBody] ProductsDTO productDTO)
         {
-            if (productsResponseDTO == null || !ModelState.IsValid)
+            if (productDTO == null || !ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var productResponse = _mapper.Map<Products>(productsResponseDTO);
+            // Barkod benzersizliğini kontrol et (aktif ürünler arasında)
+            if (!string.IsNullOrEmpty(productDTO.Barcode))
+            {
+                var existingProduct = _context.Products
+                    .Where(p => p.Barcode == productDTO.Barcode && p.Status == true)
+                    .FirstOrDefault();
+                
+                if (existingProduct != null)
+                {
+                    return BadRequest("Bu barkod zaten kullanımda.");
+                }
+            }
 
-            _context.Products.Add(productResponse);
+            var newProduct = _mapper.Map<Products>(productDTO);
+            
+            // Kaldırılan alanların atanması kaldırıldı
+            // newProduct.CreatedDate = DateTime.Now;
+            newProduct.Status = true;
+
+            _context.Products.Add(newProduct);
             _context.SaveChanges();
 
+            var productResponse = _mapper.Map<ProductsResponseDTO>(newProduct);
             return Ok(productResponse);
         }
 
         [HttpPut("{id}")]
         [Produces("application/json")]
-        public IActionResult UpdateProducts(int id, [FromBody] ProductsResponseDTO productsResponseDTO)
+        public IActionResult UpdateProduct(int id, [FromBody] ProductsDTO productDTO)
         {
-            if (productsResponseDTO == null)
+            if (productDTO == null)
             {
                 return BadRequest();
             }
 
-            var productResponse = _context.Products.FirstOrDefault(p => p.ProductID == id);
+            var product = _context.Products.FirstOrDefault(p => p.ProductID == id && p.Status == true);
 
-            if (productResponse == null)
+            if (product == null)
             {
                 return NotFound();
             }
-            
-            productResponse.ProductName = productsResponseDTO.ProductName;
 
-            productResponse.Price = productsResponseDTO.Price;
+            // Barkod benzersizliğini kontrol et (diğer aktif ürünler arasında)
+            if (!string.IsNullOrEmpty(productDTO.Barcode))
+            {
+                var existingProduct = _context.Products
+                    .Where(p => p.Barcode == productDTO.Barcode && p.ProductID != id && p.Status == true)
+                    .FirstOrDefault();
+                
+                if (existingProduct != null)
+                {
+                    return BadRequest("Bu barkod zaten başka bir ürün için kullanımda.");
+                }
+            }
 
-            productResponse.StockQuantity = productsResponseDTO.StockQuantity;
-
-            productResponse.Barcode = productsResponseDTO.Barcode;
-
-            productResponse.StoreID = productsResponseDTO.StoreID;
-
-            productResponse.CategoryID = productsResponseDTO.CategoryID;
+            // Ürünü güncelle
+            product.ProductName = productDTO.ProductName;
+            // Kaldırılan alanların güncellenmesi kaldırıldı
+            // product.Description = productDTO.Description;
+            product.Price = productDTO.Price;
+            // product.ImageUrl = productDTO.ImageUrl;
+            product.CategoryID = productDTO.CategoryID;
+            product.StoreID = productDTO.StoreID;
+            product.StockQuantity = productDTO.StockQuantity;
+            product.Barcode = productDTO.Barcode;
 
             _context.SaveChanges();
 
+            var productResponse = _mapper.Map<ProductsResponseDTO>(product);
             return Ok(productResponse);
         }
 
         [HttpDelete("SoftDelete_Status{id}")]
         [Produces("application/json")]
-        public IActionResult SoftDeleteProductsByStatus(int id)
+        public IActionResult SoftDeleteProductByStatus(int id)
         {
-            var products = _context.Products.FirstOrDefault(p => p.ProductID == id);
+            var product = _context.Products.FirstOrDefault(p => p.ProductID == id && p.Status == true);
 
-            if (products == null)
+            if (product == null)
             {
                 return NotFound();
             }
 
+            product.Status = false;
 
-            products.Status = false;
-
-
-            _context.Products.Update(products);
+            _context.Products.Update(product);
             _context.SaveChanges();
 
             return NoContent();
         }
-
     }
 }
 

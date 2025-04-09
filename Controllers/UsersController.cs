@@ -5,6 +5,7 @@ using KTUN_Final_Year_Project.Entities;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Identity;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -15,40 +16,46 @@ namespace KTUN_Final_Year_Project.Controllers
     {
         private readonly KTUN_DbContext _context;
         private readonly IMapper _mapper;
-        public UsersController(KTUN_DbContext context, IMapper mapper)
+        private readonly UserManager<Users> _userManager;
+        public UsersController(KTUN_DbContext context, IMapper mapper, UserManager<Users> userManager)
         {
             _context = context;
             _mapper = mapper;
+            _userManager = userManager;
         }
 
         [HttpGet]
         [Produces("application/json")]
-        public IActionResult GetUsers()
+        public async Task<IActionResult> GetUsers()
         {
-            var users = _context.Users
-                .Where(u => u.Status == true)
-                .Select(u => _mapper.Map<Users>(u))
-                .ToList();
+            // DİKKAT: Users entity'sinin TÜM alanları (hassas olanlar dahil) döndürülüyor.
+            var users = await _userManager.Users
+                .Where(u => u.Status == true) // Aktif kullanıcıları filtrele
+                // .Select(u => _mapper.Map<UsersResponseDTO>(u)) // Mapping kaldırıldı
+                .ToListAsync();
+
+            // Roller gibi ek bilgiler burada çekilip entity'e eklenemez (entity değiştirilemez).
+            // İstemci tarafında /api/users/{id}/roles gibi ayrı bir endpoint çağrılmalı.
 
             return Ok(users);
         }
 
         [HttpGet("{id}")]
         [Produces("application/json")]
-        public IActionResult GetUsersByID(int id)
+        public async Task<IActionResult> GetUserByID(int id)
         {
-            var users = _context.Users
-                 .Where(u => u.Id == id)
-                .Where(u => u.Status == true)
-                .Select(u => _mapper.Map<Users>(u))
-                .FirstOrDefault();
+            // DİKKAT: Users entity'sinin TÜM alanları (hassas olanlar dahil) döndürülüyor.
+            var user = await _userManager.FindByIdAsync(id.ToString()); // Doğrudan Users nesnesini al
 
-            if (users == null)
+            // Aktif olmayan veya bulunamayan kullanıcı kontrolü
+            if (user == null || !user.Status) 
             {
                 return NotFound();
             }
+            
+            // ResponseDTO mapping kaldırıldı, user nesnesi doğrudan döndürülüyor.
 
-            return Ok(users);
+            return Ok(user);
         }
 
 
@@ -90,8 +97,6 @@ namespace KTUN_Final_Year_Project.Controllers
             usersResponse.Email = usersResponseDTO.Email;
 
             usersResponse.PhoneNumber = usersResponseDTO.PhoneNumber;
-
-            usersResponse.Address = usersResponseDTO.Address;
 
             usersResponse.NFC_CardID = usersResponseDTO.NFC_CardID;
 

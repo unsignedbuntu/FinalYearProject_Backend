@@ -1,24 +1,27 @@
 ﻿namespace KTUN_Final_Year_Project.ResponseDTOs
 {
-    using KTUN_Final_Year_Project.DTOs;
     using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Collections.Generic;
+    
     public class SalesResponseDTO
     {
-#nullable disable
-
-        public DateTime SaleDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public decimal TotalAmount { get; set; }
-
-
-        [ForeignKey("UserID")]
+        public int SaleID { get; set; }
+        
         public int UserID { get; set; }
-
-
-        [ForeignKey("StoreID")]
+        
         public int StoreID { get; set; }
-
+        
+        public DateTime SaleDate { get; set; }
+        
+        public decimal TotalAmount { get; set; }
+        
+        public bool Status { get; set; }
+        
+        // Kullanıcı ve mağaza bilgileri
+        public string UserFullName { get; set; } = string.Empty;
+        public string StoreName { get; set; } = string.Empty;
+        
+        // Satış detayları
+        public List<SalesDetailsResponseDTO> SalesDetails { get; set; } = new List<SalesDetailsResponseDTO>();
     }
 }

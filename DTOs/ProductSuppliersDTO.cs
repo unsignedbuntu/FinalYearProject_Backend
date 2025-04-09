@@ -2,21 +2,22 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class ProductSuppliersDTO
     {
 #nullable disable
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Required]
+        public int ProductID { get; set; }
 
-        public int ProductSupplierID { get; set; }
+        [Required]
+        public int SupplierID { get; set; }
 
-        public DateTime SupplyDate { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-
-        public bool Status { get; set; } = true;
-
-        public virtual ProductsDTO Products { get; set; }
-
-        public virtual SuppliersDTO Suppliers { get; set; }
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Satın alma fiyatı 0'dan büyük olmalıdır.")]
+        public decimal PurchasePrice { get; set; }
+        
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Miktar en az 1 olmalıdır.")]
+        public int Quantity { get; set; }
     }
 }

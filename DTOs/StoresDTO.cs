@@ -2,18 +2,12 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class StoresDTO
     {
 #nullable disable
-
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-
-        public int StoreID { get; set; }
-
+        [Required]
+        [MaxLength(100)]
         public string StoreName { get; set; }
-
-        public bool Status { get; set; } = true;
     }
 }

@@ -2,20 +2,16 @@
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+
     public class SuppliersDTO
     {
 #nullable disable
-
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-
-        public int SupplierID { get; set; }
-
-        public String SupplierName { get; set; }
-
-        public String ContactEmail { get; set; }
-
-        public bool Status { get; set; } = true;
+        [Required]
+        [MaxLength(100)]
+        public string SupplierName { get; set; }
+        
+        [MaxLength(100)]
+        [EmailAddress]
+        public string ContactEmail { get; set; }
     }
 }

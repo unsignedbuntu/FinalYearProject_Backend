@@ -4,16 +4,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KTUN_Final_Year_Project.Entities
 {
-    public class ProductRecommendations
+    public class Reviews
     {
         [Key]
-        public int RecommendationID { get; set; }
+        public int ReviewID { get; set; }
         
         public int UserID { get; set; }
         
         public int ProductID { get; set; }
         
-        public DateTime RecommendationDate { get; set; } = DateTime.Now;
+        public int Rating { get; set; }
+        
+        public string? Comment { get; set; }
+        
+        public DateTime ReviewDate { get; set; } = DateTime.Now;
         
         public bool Status { get; set; } = true;
         
