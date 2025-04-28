@@ -83,7 +83,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowNextJsApp",
         builder => builder
-            .WithOrigins("https://localhost:3000")
+            .WithOrigins("https://localhost:3000", "http://localhost:63087")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials());
