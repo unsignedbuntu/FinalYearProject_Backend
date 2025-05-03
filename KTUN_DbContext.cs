@@ -29,6 +29,8 @@
         public DbSet<OrderItems> OrderItems { get; set; } = null!;
         public DbSet<Reviews> Reviews { get; set; } = null!;
         public DbSet<SupportMessages> SupportMessages { get; set; } = null!;
+        public DbSet<UserFavorite> UserFavorites { get; set; } = null!;
+        public DbSet<UserCartItem> UserCartItems { get; set; } = null!;
         public KTUN_DbContext(DbContextOptions<KTUN_DbContext> options) : base(options)
         {
 
@@ -335,6 +337,46 @@
                 .WithOne(pr => pr.Product)
                 .HasForeignKey(pr => pr.ProductID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // UserFavorites configuration
+            modelBuilder.Entity<UserFavorite>(entity =>
+            {
+                entity.HasKey(e => e.UserFavoriteID);
+
+                // Ensure the User-Product pair is unique
+                entity.HasIndex(e => new { e.UserID, e.ProductID }).IsUnique();
+
+                // Define relationships
+                entity.HasOne(d => d.User)
+                      .WithMany() // If Users doesn't have a collection of UserFavorites
+                      .HasForeignKey(d => d.UserID)
+                      .OnDelete(DeleteBehavior.Cascade); // Delete favorites if user is deleted
+
+                entity.HasOne(d => d.Product)
+                      .WithMany() // If Product doesn't have a collection of UserFavorites
+                      .HasForeignKey(d => d.ProductID)
+                      .OnDelete(DeleteBehavior.Cascade); // Delete favorites if product is deleted
+            });
+
+            // UserCartItems configuration
+            modelBuilder.Entity<UserCartItem>(entity =>
+            {
+                entity.HasKey(e => e.UserCartItemID);
+
+                // Ensure the User-Product pair is unique
+                entity.HasIndex(e => new { e.UserID, e.ProductID }).IsUnique();
+
+                // Define relationships
+                entity.HasOne(d => d.User)
+                      .WithMany() // If Users doesn't have a collection of UserCartItems
+                      .HasForeignKey(d => d.UserID)
+                      .OnDelete(DeleteBehavior.Cascade); // Delete cart items if user is deleted
+
+                entity.HasOne(d => d.Product)
+                      .WithMany() // If Product doesn't have a collection of UserCartItems
+                      .HasForeignKey(d => d.ProductID)
+                      .OnDelete(DeleteBehavior.Cascade); // Delete cart items if product is deleted
+            });
         }
     }
 }

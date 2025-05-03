@@ -11,6 +11,7 @@ namespace KTUN_Final_Year_Project.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            /* Manually synced via SQL script - commenting out migration steps
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
@@ -734,6 +735,12 @@ namespace KTUN_Final_Year_Project.Migrations
                 name: "IX_UserStore_StoreID",
                 table: "UserStore",
                 column: "StoreID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserCartItems_ProductID",
+                table: "UserCartItems",
+                column: "ProductID");
+            */
         }
 
         /// <inheritdoc />
