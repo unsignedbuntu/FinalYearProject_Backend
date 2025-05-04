@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KTUN_Final_Year_Project.Entities
 {
@@ -19,5 +20,12 @@ namespace KTUN_Final_Year_Project.Entities
         public string? HashValue { get; set; }
         
         public bool Status { get; set; } = true;
+
+        // Foreign Key for Products
+        public int? ProductID { get; set; } // Nullable FK
+
+        // Navigation property
+        [ForeignKey("ProductID")]
+        public virtual Products? Product { get; set; }
     }
 }

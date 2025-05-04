@@ -101,6 +101,7 @@
                 entity.Property(e => e.ProductName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Price).HasColumnType("decimal(10, 2)");
                 entity.Property(e => e.Barcode).HasMaxLength(50);
+                entity.Property(e => e.ImageUrl).HasMaxLength(2048);
                 entity.Property(e => e.Status).IsRequired().HasDefaultValue(true);
                 entity.HasIndex(e => e.Barcode).IsUnique().HasFilter("[Barcode] IS NOT NULL");
                 entity.HasOne(d => d.Store)
@@ -234,6 +235,10 @@
                 entity.Property(e => e.HashValue).HasMaxLength(64);
                 entity.HasIndex(e => e.HashValue).IsUnique().HasFilter("[HashValue] IS NOT NULL");
                 entity.Property(e => e.Status).IsRequired().HasDefaultValue(true);
+                entity.HasOne(d => d.Product)
+                      .WithMany()
+                      .HasForeignKey(d => d.ProductID)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Orders>(entity =>

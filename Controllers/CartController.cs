@@ -33,27 +33,29 @@ namespace KTUN_Final_Year_Project.Controllers
 
         // GET: api/Cart
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CartItemDto>>> GetUserCartItems()
+        public async Task<ActionResult<IEnumerable<CartItemDto>>> GetUserCart()
         {
-            if (!TryGetUserId(out var userId))
+            var userId = GetUserIdFromClaims(); // Assuming you have this helper method
+            if (userId == null)
             {
-                return Unauthorized("User ID not found in token.");
+                return Unauthorized();
             }
 
             var cartItems = await _context.UserCartItems
-                .Where(c => c.UserID == userId)
-                .Include(c => c.Product) // Ensure Product data is loaded
-                .Select(c => new CartItemDto // Project to CartItemDto
-                {
-                    UserCartItemId = c.UserCartItemID,
-                    ProductId = c.ProductID,
-                    ProductName = c.Product.ProductName,
-                    Quantity = c.Quantity,
-                    Price = c.Product.Price,
-                    // ImageUrl is commented out in DTO
-                    AddedDate = c.AddedDate
-                })
-                .ToListAsync();
+                                .Where(ci => ci.UserID == userId.Value)
+                                .Include(ci => ci.Product) // Include Products entity
+                                .Select(ci => new CartItemDto
+                                {
+                                    UserCartItemId = ci.UserCartItemID, // Use correct ID property
+                                    ProductId = ci.ProductID,        // Use correct FK property
+                                    ProductName = ci.Product.ProductName, // Use ProductName from Products
+                                    Quantity = ci.Quantity,
+                                    UnitPrice = ci.Product.Price, // Use Price from Products
+                                    ImageUrl = ci.Product.ImageUrl, // Use ImageUrl from Products
+                                    AddedDate = ci.AddedDate,
+                                    Price = ci.Product.Price // Assuming Price in DTO is UnitPrice
+                                })
+                                .ToListAsync();
 
             return Ok(cartItems);
         }
@@ -120,9 +122,11 @@ namespace KTUN_Final_Year_Project.Controllers
             {
                 UserCartItemId = existingCartItem.UserCartItemID,
                 ProductId = existingCartItem.ProductID,
-                ProductName = product.ProductName,
-                Price = product.Price,
+                ProductName = product.ProductName, // Use ProductName
+                Price = product.Price, // Use Price
+                UnitPrice = product.Price, // Add UnitPrice mapping if Price is total
                 Quantity = existingCartItem.Quantity,
+                ImageUrl = product.ImageUrl, // Map ImageUrl here too
                 AddedDate = existingCartItem.AddedDate
             };
 
@@ -251,6 +255,16 @@ namespace KTUN_Final_Year_Project.Controllers
                 return userId;
             }
             return 0;
+        }
+
+        private int? GetUserIdFromClaims()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userIdValue, out var userId))
+            {
+                return userId;
+            }
+            return null;
         }
     }
 } 

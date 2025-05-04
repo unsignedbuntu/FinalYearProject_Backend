@@ -35,24 +35,37 @@ namespace KTUN_Final_Year_Project.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<FavoriteDto>>> GetUserFavorites()
         {
-            if (!TryGetUserId(out var userId))
+            var userId = GetUserIdFromClaims();
+            if (userId == null)
             {
-                return Unauthorized("User ID not found in token.");
+                return Unauthorized();
             }
 
             var favorites = await _context.UserFavorites
-                .Where(f => f.UserID == userId)
-                .Include(f => f.Product) // Ensure Product data is loaded
-                .Select(f => new FavoriteDto
+                .Where(uf => uf.UserID == userId.Value)
+                .Include(uf => uf.Product) // Include Products entity
+                .Select(uf => new FavoriteDto
                 {
-                    ProductId = f.ProductID,
-                    ProductName = f.Product.ProductName,
-                    Price = f.Product.Price,
-                    AddedDate = f.AddedDate
+                    ProductId = uf.ProductID,         // Use ProductID from Products
+                    ProductName = uf.Product.ProductName, // Use ProductName from Products
+                    Price = uf.Product.Price,         // Use Price from Products
+                    ImageUrl = uf.Product.ImageUrl,     // Use ImageUrl from Products
+                    AddedDate = uf.AddedDate
                 })
                 .ToListAsync();
 
             return Ok(favorites);
+        }
+
+        // Helper method to get user ID from claims
+        private int? GetUserIdFromClaims()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userIdValue, out var userId))
+            {
+                return userId;
+            }
+            return null;
         }
 
         // POST: api/Favorites

@@ -61,7 +61,8 @@ namespace KTUN_Final_Year_Project.Mapper
             CreateMap<Products, ProductsResponseDTO>()
                 .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.StoreName : string.Empty))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.CategoryName : string.Empty))
-                .ForMember(dest => dest.SupplierNames, opt => opt.MapFrom(src => src.ProductSuppliers != null ? string.Join(", ", src.ProductSuppliers.Select(ps => ps.Supplier != null ? ps.Supplier.SupplierName : string.Empty)) : null));
+                .ForMember(dest => dest.SupplierNames, opt => opt.MapFrom(src => src.ProductSuppliers != null ? string.Join(", ", src.ProductSuppliers.Select(ps => ps.Supplier != null ? ps.Supplier.SupplierName : string.Empty)) : null))
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl));
             
             CreateMap<ProductSuppliers, ProductSuppliersResponseDTO>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty))

@@ -14,10 +14,12 @@
         
         public string? Barcode { get; set; }
         
+        public string? ImageUrl { get; set; }
+        
         public bool Status { get; set; }
         
         // İlişki bilgileri
-        public string StoreName { get; set; } = string.Empty;
+        public string? StoreName { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public string? SupplierNames { get; set; }
     }

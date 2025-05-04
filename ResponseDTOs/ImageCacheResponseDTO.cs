@@ -14,6 +14,8 @@
         
         public bool Status { get; set; }
         
+        public int? ProductId { get; set; }
+        
         // Base64 formatında resim verisi
         public string? Base64Image { get; set; }
     }

@@ -28,6 +28,9 @@ namespace KTUN_Final_Year_Project.Entities
         [MaxLength(50)]
         public string? Barcode { get; set; }
         
+        [StringLength(2048)]
+        public string? ImageUrl { get; set; }
+        
         public bool Status { get; set; } = true;
         
         // Navigation properties

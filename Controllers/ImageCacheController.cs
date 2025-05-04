@@ -181,14 +181,42 @@ namespace KTUN_Final_Year_Project.Controllers
                     _logger.LogInformation("CreateImageCache - Existing DB record found (ID: {ID}). Updating with new image (Size: {ImageSize} bytes).", existingRecord.ID, imageBytes.Length);
                     existingRecord.Image = imageBytes;
                     existingRecord.Status = true;
-                    existingRecord.Prompt = imageCacheResponseDTO.Prompt; // Prompt'u da güncellemek iyi olabilir
+                    existingRecord.Prompt = imageCacheResponseDTO.Prompt;
+                    existingRecord.ProductID = imageCacheResponseDTO.ProductId;
 
                     try
                     {
                         var saveDbStopwatch = Stopwatch.StartNew();
-                        await _context.SaveChangesAsync(); // <-- Hata yakalama önemli
+                        await _context.SaveChangesAsync(); // Save ImageCache changes (incl. ProductID)
                         saveDbStopwatch.Stop();
                         _logger.LogInformation("CreateImageCache - DB record updated successfully in {ElapsedMilliseconds}ms.", saveDbStopwatch.ElapsedMilliseconds);
+
+                        // ----> Update Product.ImageUrl start
+                        string? imageUrl = null;
+                        if (imageCacheResponseDTO.ProductId.HasValue)
+                        {
+                            var product = await _context.Products.FindAsync(imageCacheResponseDTO.ProductId.Value);
+                            if (product != null)
+                            {
+                                imageUrl = $"/api/ImageServe/{product.ProductID}";
+                                product.ImageUrl = imageUrl;
+                                try
+                                {
+                                    await _context.SaveChangesAsync(); // Save Product changes
+                                    _logger.LogInformation("CreateImageCache - Updated Product (ID: {ProductId}) ImageUrl to: {ImageUrl}", product.ProductID, imageUrl);
+                                }
+                                catch (DbUpdateException prodEx)
+                                {
+                                    _logger.LogError(prodEx, "CreateImageCache - Failed to update Product (ID: {ProductId}) ImageUrl.", product.ProductID);
+                                    // Continue even if product update fails? Decide on error handling.
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("CreateImageCache - Product with ID {ProductId} not found. Cannot update ImageUrl.", imageCacheResponseDTO.ProductId.Value);
+                            }
+                        }
+                        // <---- Update Product.ImageUrl end
 
                         // Redis'i de güncelle
                         string newBase64Image = imageCacheResponseDTO.Base64Image; // Zaten string olarak var
@@ -200,7 +228,8 @@ namespace KTUN_Final_Year_Project.Controllers
 
                         stopwatch.Stop();
                         _logger.LogInformation("END CreateImageCache - Record updated in DB and Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                        return Ok(new { success = true, image = newBase64Image, message = "Image cache record updated successfully.", source = "update" });
+                        // Return ImageUrl along with other info
+                        return Ok(new { success = true, image = imageCacheResponseDTO.Base64Image, imageUrl = imageUrl, message = "Image cache record updated successfully.", source = "update" });
                     }
                     catch (DbUpdateException dbEx)
                     {
@@ -228,17 +257,43 @@ namespace KTUN_Final_Year_Project.Controllers
                         Image = imageBytes,
                         HashValue = hashValue,
                         Status = true,
-                        // CreatedDate alanı ImageCache entity'sinde var mı kontrol edilmeli,
-                        // Eğer varsa ve otomatik setlenmiyorsa: CreatedDate = DateTime.UtcNow
+                        ProductID = imageCacheResponseDTO.ProductId,
                     };
                     _context.ImageCache.Add(newImageCache);
 
                     try
                     {
                         var saveDbStopwatch = Stopwatch.StartNew();
-                        await _context.SaveChangesAsync(); // <-- Hata yakalama önemli
+                        await _context.SaveChangesAsync(); // Save new ImageCache (incl. ProductID)
                         saveDbStopwatch.Stop();
                         _logger.LogInformation("CreateImageCache - New DB record created successfully (ID: {ID}) in {ElapsedMilliseconds}ms.", newImageCache.ID, saveDbStopwatch.ElapsedMilliseconds);
+
+                        // ----> Update Product.ImageUrl start
+                        string? imageUrl = null;
+                        if (imageCacheResponseDTO.ProductId.HasValue)
+                        {
+                            var product = await _context.Products.FindAsync(imageCacheResponseDTO.ProductId.Value);
+                            if (product != null)
+                            {
+                                imageUrl = $"/api/ImageServe/{product.ProductID}";
+                                product.ImageUrl = imageUrl;
+                                try
+                                {
+                                    await _context.SaveChangesAsync(); // Save Product changes
+                                    _logger.LogInformation("CreateImageCache - Updated Product (ID: {ProductId}) ImageUrl to: {ImageUrl}", product.ProductID, imageUrl);
+                                }
+                                catch (DbUpdateException prodEx)
+                                {
+                                    _logger.LogError(prodEx, "CreateImageCache - Failed to update Product (ID: {ProductId}) ImageUrl.", product.ProductID);
+                                    // Decide on error handling
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("CreateImageCache - Product with ID {ProductId} not found. Cannot update ImageUrl.", imageCacheResponseDTO.ProductId.Value);
+                            }
+                        }
+                        // <---- Update Product.ImageUrl end
 
                         // Redis'e kaydet
                         string newBase64Image = imageCacheResponseDTO.Base64Image;
@@ -250,7 +305,8 @@ namespace KTUN_Final_Year_Project.Controllers
 
                         stopwatch.Stop();
                         _logger.LogInformation("END CreateImageCache - New record created in DB and Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                        return Ok(new { success = true, image = newBase64Image, message = "Image cache record created successfully.", source = "new_entry" });
+                        // Return ImageUrl along with other info
+                        return Ok(new { success = true, image = imageCacheResponseDTO.Base64Image, imageUrl = imageUrl, message = "Image cache record created successfully.", source = "new_entry" });
                     }
                     catch (DbUpdateException dbEx)
                     {
