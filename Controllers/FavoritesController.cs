@@ -35,21 +35,20 @@ namespace KTUN_Final_Year_Project.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<FavoriteDto>>> GetUserFavorites()
         {
-            var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if (!TryGetUserId(out var userId) || userId == 0) // userId == 0 kontrolü eklendi
             {
-                return Unauthorized();
+                return Unauthorized("User ID not found in token or invalid.");
             }
 
             var favorites = await _context.UserFavorites
-                .Where(uf => uf.UserID == userId.Value)
-                .Include(uf => uf.Product) // Include Products entity
+                .Where(uf => uf.UserID == userId) // .Value kaldırıldı çünkü userId artık int
+                .Include(uf => uf.Product)
                 .Select(uf => new FavoriteDto
                 {
-                    ProductId = uf.ProductID,         // Use ProductID from Products
-                    ProductName = uf.Product.ProductName, // Use ProductName from Products
-                    Price = uf.Product.Price,         // Use Price from Products
-                    ImageUrl = uf.Product.ImageUrl,     // Use ImageUrl from Products
+                    ProductId = uf.ProductID,
+                    ProductName = uf.Product.ProductName,
+                    Price = uf.Product.Price,
+                    ImageUrl = uf.Product.ImageUrl,
                     AddedDate = uf.AddedDate
                 })
                 .ToListAsync();
@@ -57,41 +56,45 @@ namespace KTUN_Final_Year_Project.Controllers
             return Ok(favorites);
         }
 
-        // Helper method to get user ID from claims
-        private int? GetUserIdFromClaims()
-        {
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (int.TryParse(userIdValue, out var userId))
-            {
-                return userId;
-            }
-            return null;
-        }
+        // Helper method GetUserIdFromClaims kaldırıldı, TryGetUserId yeterli.
 
         // POST: api/Favorites
         [HttpPost]
-        public async Task<IActionResult> AddFavorite([FromBody] AddFavoriteRequestDto request)
+        public async Task<ActionResult<FavoriteDto>> AddFavorite([FromBody] AddFavoriteRequestDto request) // IActionResult yerine ActionResult<FavoriteDto>
         {
-            if (!TryGetUserId(out var userId))
+            if (!TryGetUserId(out var userId) || userId == 0)
             {
-                return Unauthorized("User ID not found in token.");
+                return Unauthorized("User ID not found in token or invalid.");
             }
 
-            // Check if product exists
             var productExists = await _context.Products.AnyAsync(p => p.ProductID == request.ProductId);
             if (!productExists)
             {
                 return BadRequest("Product not found.");
             }
 
-            // Check if the favorite already exists for this user
             var favoriteExists = await _context.UserFavorites
                 .AnyAsync(f => f.UserID == userId && f.ProductID == request.ProductId);
 
             if (favoriteExists)
             {
-                // Already exists, return Conflict or Ok depending on desired behavior
-                return Conflict("Product is already in favorites.");
+                // Mevcut favoriyi DTO olarak döndür
+                var existingFavoriteDto = await _context.UserFavorites
+                    .Where(f => f.UserID == userId && f.ProductID == request.ProductId)
+                    .Include(f => f.Product)
+                    .Select(uf => new FavoriteDto
+                    {
+                        ProductId = uf.ProductID,
+                        ProductName = uf.Product.ProductName,
+                        Price = uf.Product.Price,
+                        ImageUrl = uf.Product.ImageUrl,
+                        AddedDate = uf.AddedDate
+                    })
+                    .FirstOrDefaultAsync();
+
+                // Eğer bir şekilde DTO null gelirse (beklenmedik durum), genel bir conflict mesajı dönebilirsin.
+                // Normalde `existingFavoriteDto` null olmamalı çünkü `favoriteExists` true.
+                return Conflict(existingFavoriteDto ?? (object)"Product is already in favorites.");
             }
 
             var newFavorite = new UserFavorite
@@ -109,24 +112,46 @@ namespace KTUN_Final_Year_Project.Controllers
             }
             catch (DbUpdateException ex)
             {
-                // Log the exception details (ex)
-                Console.WriteLine($"Error adding favorite: {ex.ToString()}"); // Use the 'ex' variable
-                // Could be a unique constraint violation if checked again due to race condition
+                Console.WriteLine($"Error adding favorite: {ex.ToString()}");
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding the favorite.");
             }
 
-            // Optionally return the created favorite details
-            // For simplicity, returning Ok or CreatedAtAction
-            return Ok(); // Or CreatedAtAction(nameof(GetUserFavorites), null)
+            // Yeni eklenen favorinin detaylarını çek ve DTO olarak döndür
+            var createdFavoriteDto = await _context.UserFavorites
+                .Where(f => f.UserFavoriteID == newFavorite.UserFavoriteID) // Yeni eklenen kaydın ID'si ile bul
+                .Include(f => f.Product)
+                .Select(uf => new FavoriteDto
+                {
+                    ProductId = uf.ProductID,
+                    ProductName = uf.Product.ProductName,
+                    Price = uf.Product.Price,
+                    ImageUrl = uf.Product.ImageUrl,
+                    AddedDate = uf.AddedDate
+                    // Örnek olarak inStock veya supplierName gibi ek alanlar eklenebilir:
+                    // inStock = uf.Product.StockQuantity > 0,
+                    // supplierName = uf.Product.Suppliers.FirstOrDefault()?.SupplierName
+                })
+                .FirstOrDefaultAsync();
+
+            if (createdFavoriteDto == null)
+            {
+                // Bu durum normalde SaveChangesAsync başarılı olduysa ve newFavorite.UserFavoriteID geçerliyse yaşanmamalı.
+                Console.WriteLine($"Critical error: Could not retrieve favorite DTO for UserFavoriteID {newFavorite.UserFavoriteID} after creation.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Could not retrieve favorite details after creation.");
+            }
+
+            // Oluşturulan DTO'yu 200 OK (veya 201 Created) ile döndür
+            return Ok(createdFavoriteDto);
+            // Alternatif: return CreatedAtAction(nameof(GetUserFavorites), null, createdFavoriteDto); // Bu 201 Created döndürür
         }
 
         // DELETE: api/Favorites/{productId}
         [HttpDelete("{productId}")]
         public async Task<IActionResult> RemoveFavorite(int productId)
         {
-            if (!TryGetUserId(out var userId))
+            if (!TryGetUserId(out var userId) || userId == 0)
             {
-                return Unauthorized("User ID not found in token.");
+                return Unauthorized("User ID not found in token or invalid.");
             }
 
             var favorite = await _context.UserFavorites
@@ -142,24 +167,15 @@ namespace KTUN_Final_Year_Project.Controllers
             {
                 await _context.SaveChangesAsync();
             }
-            catch (Exception ex) // Consider logging the exception details: ex.ToString()
+            catch (Exception ex)
             {
-                // Log exception (consider a logging framework)
-                Console.WriteLine($"Error removing favorite: {ex.ToString()}"); // Log full exception details
+                Console.WriteLine($"Error removing favorite: {ex.ToString()}");
                 return StatusCode(500, "Favori kaldırılırken bir sunucu hatası oluştu.");
             }
 
             return NoContent(); // Successfully removed
         }
 
-        private int GetUserId()
-        {
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (int.TryParse(userIdValue, out var userId))
-            {
-                return userId;
-            }
-            return 0;
-        }
+        // GetUserId metodu TryGetUserId ile birleştirildiği için kaldırıldı.
     }
-} 
+}
