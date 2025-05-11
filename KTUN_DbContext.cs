@@ -31,6 +31,8 @@
         public DbSet<SupportMessages> SupportMessages { get; set; } = null!;
         public DbSet<UserFavorite> UserFavorites { get; set; } = null!;
         public DbSet<UserCartItem> UserCartItems { get; set; } = null!;
+        public DbSet<FavoriteList> FavoriteLists { get; set; } = null!;
+        public DbSet<FavoriteListItem> FavoriteListItems { get; set; } = null!;
         public KTUN_DbContext(DbContextOptions<KTUN_DbContext> options) : base(options)
         {
 
@@ -381,6 +383,42 @@
                       .WithMany() // If Product doesn't have a collection of UserCartItems
                       .HasForeignKey(d => d.ProductID)
                       .OnDelete(DeleteBehavior.Cascade); // Delete cart items if product is deleted
+            });
+
+            // FavoriteLists & FavoriteListItems Configuration
+            modelBuilder.Entity<FavoriteList>(entity =>
+            {
+                entity.HasKey(e => e.FavoriteListID);
+                entity.ToTable("FavoriteLists");
+                entity.Property(e => e.ListName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.IsPrivate).IsRequired().HasDefaultValue(false); // Default Public
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETDATE()");
+                entity.Property(e => e.Status).IsRequired().HasDefaultValue(true); // Default Active
+
+                entity.HasOne(d => d.User)
+                      .WithMany() // Users entity'sinde bir ICollection<FavoriteList>? FavoriteLists { get; set; } tanımlanmadıysa
+                      .HasForeignKey(d => d.UserID)
+                      .OnDelete(DeleteBehavior.Cascade); // Kullanıcı silinirse listeleri de sil
+            });
+
+            modelBuilder.Entity<FavoriteListItem>(entity =>
+            {
+                entity.HasKey(e => e.FavoriteListItemID);
+                entity.ToTable("FavoriteListItems");
+                entity.Property(e => e.AddedDate).HasColumnType("datetime2").HasDefaultValueSql("GETDATE()");
+
+                // Composite Unique Index (FavoriteListID, ProductID)
+                entity.HasIndex(e => new { e.FavoriteListID, e.ProductID }).IsUnique().HasDatabaseName("UQ_FavoriteListItems_List_Product");
+
+                entity.HasOne(d => d.FavoriteList)
+                      .WithMany(p => p.FavoriteListItems) // FavoriteList entity'sinde ICollection<FavoriteListItem>? FavoriteListItems { get; set; } var
+                      .HasForeignKey(d => d.FavoriteListID)
+                      .OnDelete(DeleteBehavior.Cascade); // Liste silinirse öğeleri de sil
+
+                entity.HasOne(d => d.Product)
+                      .WithMany() // Products entity'sinde bir ICollection<FavoriteListItem>? FavoriteListItems { get; set; } tanımlanmadıysa
+                      .HasForeignKey(d => d.ProductID)
+                      .OnDelete(DeleteBehavior.Cascade); // Ürün silinirse listeden de sil
             });
         }
     }

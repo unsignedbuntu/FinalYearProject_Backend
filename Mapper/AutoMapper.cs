@@ -37,6 +37,9 @@ namespace KTUN_Final_Year_Project.Mapper
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id));
             CreateMap<UserStoreDTO, UserStore>();
             CreateMap<ProductRecommendationsDTO, ProductRecommendations>();
+            CreateMap<FavoriteListDTO, FavoriteList>();
+            CreateMap<FavoriteListItemDTO, FavoriteListItem>()
+                .ForMember(dest => dest.ProductID, opt => opt.MapFrom(src => src.ProductId));
 
             // Entity -> ResponseDTO
             CreateMap<Categories, CategoriesResponseDTO>()
@@ -103,6 +106,14 @@ namespace KTUN_Final_Year_Project.Mapper
             CreateMap<ProductRecommendations, ProductRecommendationsResponseDTO>()
                 .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty))
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty));
+            
+            CreateMap<FavoriteList, FavoriteListResponseDTO>()
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty));
+            
+            CreateMap<FavoriteListItem, FavoriteListItemResponseDTO>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty))
+                .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Product != null ? src.Product.Price : (decimal?)null))
+                .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product != null ? src.Product.ImageUrl : null));
         }
     }
 }
