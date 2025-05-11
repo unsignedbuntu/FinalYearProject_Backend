@@ -10,6 +10,7 @@ namespace KTUN_Final_Year_Project.DTOs
         public decimal UnitPrice { get; set; }
         public string? ImageUrl { get; set; }
         public DateTime AddedDate { get; set; }
+        public bool InStock { get; set; } // Added based on Product.StockQuantity > 0
         // Add Supplier info if needed
         // public string SupplierName { get; set; }
     }

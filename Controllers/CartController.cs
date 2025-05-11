@@ -35,14 +35,13 @@ namespace KTUN_Final_Year_Project.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CartItemDto>>> GetUserCart()
         {
-            var userId = GetUserIdFromClaims(); // Assuming you have this helper method
-            if (userId == null)
+            if (!TryGetUserId(out var userId))
             {
-                return Unauthorized();
+                return Unauthorized("User ID not found in token.");
             }
 
             var cartItems = await _context.UserCartItems
-                                .Where(ci => ci.UserID == userId.Value)
+                                .Where(ci => ci.UserID == userId)
                                 .Include(ci => ci.Product) // Include Products entity
                                 .Select(ci => new CartItemDto
                                 {
@@ -52,6 +51,7 @@ namespace KTUN_Final_Year_Project.Controllers
                                     Quantity = ci.Quantity,
                                     UnitPrice = ci.Product.Price, // Use Price from Products
                                     ImageUrl = ci.Product.ImageUrl, // Use ImageUrl from Products
+                                    InStock = ci.Product.StockQuantity > 0, // Added InStock
                                     AddedDate = ci.AddedDate,
                                     Price = ci.Product.Price // Assuming Price in DTO is UnitPrice
                                 })
@@ -127,6 +127,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 UnitPrice = product.Price, // Add UnitPrice mapping if Price is total
                 Quantity = existingCartItem.Quantity,
                 ImageUrl = product.ImageUrl, // Map ImageUrl here too
+                InStock = product.StockQuantity > 0, // Added InStock
                 AddedDate = existingCartItem.AddedDate
             };
 

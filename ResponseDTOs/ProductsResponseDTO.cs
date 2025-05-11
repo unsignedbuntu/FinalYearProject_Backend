@@ -18,9 +18,13 @@
         
         public bool Status { get; set; }
         
+        public bool InStock { get; set; }
+        
         // İlişki bilgileri
         public string? StoreName { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public string? SupplierNames { get; set; }
+        
+        public int CategoryID { get; set; }
     }
 }

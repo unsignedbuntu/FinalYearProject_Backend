@@ -49,6 +49,7 @@ namespace KTUN_Final_Year_Project.Controllers
                     ProductName = uf.Product.ProductName,
                     Price = uf.Product.Price,
                     ImageUrl = uf.Product.ImageUrl,
+                    InStock = uf.Product.StockQuantity > 0,
                     AddedDate = uf.AddedDate
                 })
                 .ToListAsync();
@@ -88,6 +89,7 @@ namespace KTUN_Final_Year_Project.Controllers
                         ProductName = uf.Product.ProductName,
                         Price = uf.Product.Price,
                         ImageUrl = uf.Product.ImageUrl,
+                        InStock = uf.Product.StockQuantity > 0,
                         AddedDate = uf.AddedDate
                     })
                     .FirstOrDefaultAsync();
@@ -126,6 +128,7 @@ namespace KTUN_Final_Year_Project.Controllers
                     ProductName = uf.Product.ProductName,
                     Price = uf.Product.Price,
                     ImageUrl = uf.Product.ImageUrl,
+                    InStock = uf.Product.StockQuantity > 0,
                     AddedDate = uf.AddedDate
                     // Örnek olarak inStock veya supplierName gibi ek alanlar eklenebilir:
                     // inStock = uf.Product.StockQuantity > 0,
