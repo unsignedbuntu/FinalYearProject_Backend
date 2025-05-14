@@ -12,5 +12,6 @@ namespace KTUN_Final_Year_Project.ResponseDTOs
         public string? ProductImageUrl { get; set; }
         public bool InStock { get; set; }
         public DateTime AddedDate { get; set; }
+        public string SupplierName { get; set; }
     }
 } 

@@ -115,7 +115,11 @@ namespace KTUN_Final_Year_Project.Mapper
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty))
                 .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Product != null ? src.Product.Price : (decimal?)null))
                 .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product != null ? src.Product.ImageUrl : null))
-                .ForMember(dest => dest.InStock, opt => opt.MapFrom(src => src.Product != null && src.Product.StockQuantity > 0));
+                .ForMember(dest => dest.InStock, opt => opt.MapFrom(src => src.Product != null && src.Product.StockQuantity > 0))
+                .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => 
+                    src.Product != null && src.Product.ProductSuppliers != null && src.Product.ProductSuppliers.Any() && src.Product.ProductSuppliers.First().Supplier != null 
+                    ? src.Product.ProductSuppliers.First().Supplier.SupplierName 
+                    : string.Empty));
         }
     }
 }
