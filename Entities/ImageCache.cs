@@ -9,9 +9,6 @@ namespace KTUN_Final_Year_Project.Entities
         [Key]
         public int ID { get; set; }
         
-        [MaxLength(100)]
-        public string? PageID { get; set; }
-        
         public string? Prompt { get; set; }
         
         public byte[]? Image { get; set; }
@@ -27,5 +24,12 @@ namespace KTUN_Final_Year_Project.Entities
         // Navigation property
         [ForeignKey("ProductID")]
         public virtual Products? Product { get; set; }
+
+        // Foreign Key for Suppliers
+        public int? SupplierID { get; set; } // Nullable FK
+
+        // Navigation property
+        [ForeignKey("SupplierID")]
+        public virtual Suppliers? Supplier { get; set; }
     }
 }

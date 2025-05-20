@@ -13,7 +13,8 @@ namespace KTUN_Final_Year_Project.Mapper
         {
             // DTO -> Entity
             CreateMap<CategoriesDTO, Categories>();
-            CreateMap<ImageCacheDTO, ImageCache>();
+            CreateMap<ImageCacheDTO, ImageCache>()
+                .ForMember(dest => dest.Image, opt => opt.Ignore());
             CreateMap<InventoryDTO, Inventory>();
             CreateMap<LoyaltyProgramsDTO, LoyaltyPrograms>();
             CreateMap<OrdersDTO, Orders>();
@@ -45,6 +46,12 @@ namespace KTUN_Final_Year_Project.Mapper
             CreateMap<Categories, CategoriesResponseDTO>()
                 .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.StoreName : string.Empty))
                 .ForMember(dest => dest.ProductCount, opt => opt.MapFrom(src => src.Products != null ? src.Products.Count : 0));
+            
+            CreateMap<ImageCache, ImageCacheResponseDTO>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : null))
+                .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.SupplierName : null))
+                .ForMember(dest => dest.Base64Image, opt => opt.Ignore())
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => $"/api/imagecache/image/{src.ID}"));
             
             CreateMap<Inventory, InventoryResponseDTO>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty))
@@ -112,14 +119,15 @@ namespace KTUN_Final_Year_Project.Mapper
                 .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty));
             
             CreateMap<FavoriteListItem, FavoriteListItemResponseDTO>()
-                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty))
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : null))
                 .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Product != null ? src.Product.Price : (decimal?)null))
                 .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product != null ? src.Product.ImageUrl : null))
                 .ForMember(dest => dest.InStock, opt => opt.MapFrom(src => src.Product != null && src.Product.StockQuantity > 0))
                 .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => 
-                    src.Product != null && src.Product.ProductSuppliers != null && src.Product.ProductSuppliers.Any() && src.Product.ProductSuppliers.First().Supplier != null 
-                    ? src.Product.ProductSuppliers.First().Supplier.SupplierName 
-                    : string.Empty));
+                    (src.Product != null && src.Product.ProductSuppliers != null && src.Product.ProductSuppliers.Any()) 
+                    ? (src.Product.ProductSuppliers.First().Supplier != null ? src.Product.ProductSuppliers.First().Supplier.SupplierName : null) 
+                    : null
+                ));
         }
     }
 }

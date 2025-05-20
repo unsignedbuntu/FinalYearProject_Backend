@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Security.Cryptography;
 using KTUN_Final_Year_Project.Services;
-using Azure.Core;
-using System.Diagnostics; // Stopwatch için eklendi
+using System.Diagnostics;
+using KTUN_Final_Year_Project.DTOs; // ImageCacheDTO için eklendi
+using System.Linq; // .Select() için eklendi
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -28,372 +29,461 @@ namespace KTUN_Final_Year_Project.Controllers
             _logger = logger;
         }
 
-        [HttpGet("{pageID}/{prompt}")]
-        [Produces("application/json")]
-        public async Task<IActionResult> GetImageCache(string pageID, string prompt)
+        // Helper method to generate hash
+        private static string GenerateHash(string input)
         {
-            var stopwatch = Stopwatch.StartNew(); // Zaman ölçümü başlat
-            _logger.LogInformation("START GetImageCache - PageID: {PageID}, Prompt: {Prompt}", pageID, prompt);
-
-            // CORS Headers (Bunlar genellikle middleware ile yönetilir, ama burada bırakıyorum)
-            // Response.Headers.Append("Access-Control-Allow-Origin", "*");
-            // Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            // Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Accept");
-
-            if (string.IsNullOrEmpty(pageID) || string.IsNullOrEmpty(prompt))
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+            using (SHA256 sha256 = SHA256.Create())
             {
-                _logger.LogWarning("GetImageCache - Bad Request: Missing required parameters.");
-                return BadRequest("Missing required parameters");
+                byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+                byte[] hashBytes = sha256.ComputeHash(inputBytes);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
             }
+        }
 
-            string hashInput = prompt;
-            string hashValue = GenerateHash(hashInput);
-            _logger.LogInformation("GetImageCache - Generated HashValue: {HashValue} for Prompt: {Prompt}", hashValue, prompt);
+        // GET: api/imagecache/image/{id} - Resmi ID ile direkt sunar
+        [HttpGet("image/{id}")]
+        public async Task<IActionResult> GetImageById(int id)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("START GetImageById - ID: {ID}", id);
 
             try
             {
-                // 1. Redis'ten kontrol et
-                _logger.LogInformation("GetImageCache - Checking Redis for HashValue: {HashValue}", hashValue);
-                var redisStopwatch = Stopwatch.StartNew();
-                var cachedImage = await _redisService.GetImageFromCacheAsync(hashValue);
-                redisStopwatch.Stop();
-                _logger.LogInformation("GetImageCache - Redis check completed in {ElapsedMilliseconds}ms. Found: {Found}", redisStopwatch.ElapsedMilliseconds, !string.IsNullOrEmpty(cachedImage));
+                var imageCacheEntity = await _context.ImageCache.FindAsync(id);
 
-                if (!string.IsNullOrEmpty(cachedImage))
+                if (imageCacheEntity == null || imageCacheEntity.Image == null || imageCacheEntity.Image.Length == 0)
                 {
                     stopwatch.Stop();
-                    _logger.LogInformation("END GetImageCache - Found in Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                    return Ok(new { success = true, image = cachedImage, source = "redis_cache" }); // 'success' ve 'source' eklendi
+                    _logger.LogWarning("END GetImageById - Not Found or image data empty for ID: {ID}. Total time: {ElapsedMilliseconds}ms", id, stopwatch.ElapsedMilliseconds);
+                    return NotFound(new { success = false, message = "Image not found or data is empty." });
                 }
-
-                // 2. Redis'te yoksa veritabanından al
-                _logger.LogInformation("GetImageCache - Checking Database for PageID: {PageID}, HashValue: {HashValue}", pageID, hashValue);
-                var dbStopwatch = Stopwatch.StartNew();
-                var imageCacheEntity = await _context.ImageCache.FirstOrDefaultAsync(ic =>
-                    ic.PageID == pageID && ic.HashValue == hashValue);
-                dbStopwatch.Stop();
-                _logger.LogInformation("GetImageCache - Database check completed in {ElapsedMilliseconds}ms. Found: {Found}", dbStopwatch.ElapsedMilliseconds, imageCacheEntity != null);
-
-                if (imageCacheEntity == null)
-                {
-                    stopwatch.Stop();
-                    _logger.LogWarning("END GetImageCache - Not Found in DB or Redis. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                    return NotFound(new { success = false, message = "Image not found in cache." }); // 'success' eklendi
-                }
-
-                if (imageCacheEntity.Image == null || imageCacheEntity.Image.Length == 0)
-                {
-                    _logger.LogWarning("GetImageCache - Found record in DB (ID: {ID}) but Image data is empty.", imageCacheEntity.ID);
-                    // Burada image üretme tetiklenmeli mi? Eğer evetse, o kod burada olmalı.
-                    // Şimdilik 'NotFound' dönüyorum, çünkü resim yok.
-                    stopwatch.Stop();
-                    _logger.LogWarning("END GetImageCache - Found in DB but image empty. Returning NotFound. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                    return NotFound(new { success = false, message = "Image record found but data is empty." });
-                }
-
-                var base64Image = Convert.ToBase64String(imageCacheEntity.Image);
-                _logger.LogInformation("GetImageCache - Image found in DB (ID: {ID}). Image size: {ImageSize} bytes.", imageCacheEntity.ID, imageCacheEntity.Image.Length);
-
-                // 3. Veritabanından alınan veriyi Redis'e kaydet (arka planda?)
-                _logger.LogInformation("GetImageCache - Saving DB image to Redis for HashValue: {HashValue}", hashValue);
-                var redisSaveStopwatch = Stopwatch.StartNew();
-                // Bu işlemi await kullanmadan arka planda yapmak isteyebilirsiniz (Fire-and-forget)
-                // Ancak loglama için await ile devam ediyorum.
-                await _redisService.SaveImageToCacheAsync(hashValue, base64Image);
-                redisSaveStopwatch.Stop();
-                _logger.LogInformation("GetImageCache - Saved image to Redis in {ElapsedMilliseconds}ms.", redisSaveStopwatch.ElapsedMilliseconds);
 
                 stopwatch.Stop();
-                _logger.LogInformation("END GetImageCache - Found in DB, saved to Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                return Ok(new { success = true, image = base64Image, source = "database_cache" }); // 'success' ve 'source' eklendi
+                _logger.LogInformation("END GetImageById - Found image for ID: {ID}. Returning File. Total time: {ElapsedMilliseconds}ms", id, stopwatch.ElapsedMilliseconds);
+                return File(imageCacheEntity.Image, "image/png"); // Veya uygun MIME türü
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                _logger.LogError(ex, "ERROR GetImageCache - Exception occurred after {ElapsedMilliseconds}ms. PageID: {PageID}, Prompt: {Prompt}", stopwatch.ElapsedMilliseconds, pageID, prompt);
-                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" }); // 'success' eklendi
+                _logger.LogError(ex, "ERROR GetImageById - Exception for ID: {ID}. Total time: {ElapsedMilliseconds}ms", id, stopwatch.ElapsedMilliseconds);
+                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" });
             }
         }
 
-        [HttpPost]
+
+        // GET: api/imagecache/prompt/{prompt} - Prompt ile cache'den resim getirir (Redis -> DB)
+        [HttpGet("prompt/{prompt}")]
         [Produces("application/json")]
-        public async Task<IActionResult> CreateImageCache([FromBody] ImageCacheResponseDTO imageCacheResponseDTO)
+        public async Task<IActionResult> GetImageByPrompt(string prompt)
         {
             var stopwatch = Stopwatch.StartNew();
-            // Gelen isteği detaylı logla
-            _logger.LogInformation("START CreateImageCache - Received DTO: {@ImageCacheDTO}", imageCacheResponseDTO);
+            _logger.LogInformation("START GetImageByPrompt - Prompt: {Prompt}", prompt);
+
+            if (string.IsNullOrEmpty(prompt))
+            {
+                _logger.LogWarning("GetImageByPrompt - Bad Request: Missing prompt.");
+                return BadRequest(new { success = false, message = "Prompt is required." });
+            }
+
+            string hashValue = GenerateHash(prompt);
+            _logger.LogInformation("GetImageByPrompt - Generated HashValue: {HashValue} for Prompt: {Prompt}", hashValue, prompt);
 
             try
             {
-                if (imageCacheResponseDTO == null || string.IsNullOrEmpty(imageCacheResponseDTO.PageID) || string.IsNullOrEmpty(imageCacheResponseDTO.Prompt))
-                {
-                    _logger.LogWarning("CreateImageCache - Bad Request: DTO is null or missing PageID/Prompt.");
-                    stopwatch.Stop(); // Hata durumunda da süreyi loglamak iyi olabilir
-                    return BadRequest(new { success = false, message = "Request body is invalid or missing required fields (PageID, Prompt)."});
-                }
+                _logger.LogInformation("GetImageByPrompt - Checking Redis for HashValue: {HashValue}", hashValue);
+                var redisStopwatch = Stopwatch.StartNew();
+                var cachedImageBase64 = await _redisService.GetImageFromCacheAsync(hashValue);
+                redisStopwatch.Stop();
+                _logger.LogInformation("GetImageByPrompt - Redis check completed in {ElapsedMilliseconds}ms. Found: {Found}", redisStopwatch.ElapsedMilliseconds, !string.IsNullOrEmpty(cachedImageBase64));
 
-                // !!! EN ÖNEMLİ KONTROL: Resim verisi geldi mi?
-                if (string.IsNullOrEmpty(imageCacheResponseDTO.Base64Image))
+                if (!string.IsNullOrEmpty(cachedImageBase64))
                 {
-                    _logger.LogError("CreateImageCache - Bad Request: Base64Image field is missing or empty in the received POST request for Prompt: {Prompt}", imageCacheResponseDTO.Prompt);
-                    // Bu durum olmamalı, çünkü route.ts resmi göndermeli. Eğer buraya düşüyorsa, route.ts'in gönderdiği veri hatalı veya binding sorunu var.
                     stopwatch.Stop();
-                    return BadRequest(new { success = false, message = "Base64Image data is required in the POST request body." });
+                    _logger.LogInformation("END GetImageByPrompt - Found in Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
+                    // Response DTO'ya mapleyip Product/Supplier bilgilerini ekleyebiliriz, ama burada sadece resmi dönüyoruz.
+                    // Eğer detaylı bilgi isteniyorsa, ImageCache entity'sini de çekip maplemeliyiz.
+                    // Şimdilik sadece resim ve kaynak bilgisi dönüyor.
+                    var dbEntityForInfo = await _context.ImageCache
+                        .Include(ic => ic.Product)
+                        .Include(ic => ic.Supplier)
+                        .FirstOrDefaultAsync(ic => ic.HashValue == hashValue && ic.Status == true);
+
+                    var response = new ImageCacheResponseDTO
+                    {
+                        ID = dbEntityForInfo?.ID ?? 0,
+                        Prompt = prompt,
+                        HashValue = hashValue,
+                        Status = dbEntityForInfo?.Status ?? false,
+                        ProductId = dbEntityForInfo?.ProductID,
+                        ProductName = dbEntityForInfo?.Product?.ProductName,
+                        SupplierId = dbEntityForInfo?.SupplierID,
+                        SupplierName = dbEntityForInfo?.Supplier?.SupplierName,
+                        Base64Image = cachedImageBase64,
+                        ImageUrl = dbEntityForInfo != null ? $"/api/imagecache/image/{dbEntityForInfo.ID}" : null
+                    };
+                    return Ok(new { success = true, data = response, source = "redis_cache" });
                 }
 
-                byte[] imageBytes;
-                try
-                {
-                    // Potansiyel olarak çok büyük string, dikkatli olalım.
-                    imageBytes = Convert.FromBase64String(imageCacheResponseDTO.Base64Image);
-                    _logger.LogInformation("CreateImageCache - Base64 decoding successful. Image size: {ImageSize} bytes for Prompt: {Prompt}", imageBytes.Length, imageCacheResponseDTO.Prompt);
-                }
-                catch (FormatException ex)
-                {
-                    _logger.LogError(ex, "CreateImageCache - Base64 decoding error for Prompt: {Prompt}", imageCacheResponseDTO.Prompt);
-                    stopwatch.Stop();
-                    return BadRequest(new { success = false, message = "Invalid Base64 image data." });
-                }
-
-                if (imageBytes.Length == 0)
-                {
-                    _logger.LogWarning("CreateImageCache - Decoded image data is empty for Prompt: {Prompt}", imageCacheResponseDTO.Prompt);
-                    stopwatch.Stop();
-                    return BadRequest(new { success = false, message = "Provided image data is empty after decoding." });
-                }
-
-
-                var hashValue = GenerateHash(imageCacheResponseDTO.Prompt);
-                _logger.LogInformation("CreateImageCache - Generated HashValue: {HashValue} for Prompt: {Prompt}", hashValue, imageCacheResponseDTO.Prompt);
-
-                // Veritabanı kontrolü
-                _logger.LogInformation("CreateImageCache - Checking Database for existing record. PageID: {PageID}, HashValue: {HashValue}", imageCacheResponseDTO.PageID, hashValue);
+                _logger.LogInformation("GetImageByPrompt - Checking Database for HashValue: {HashValue}", hashValue);
                 var dbStopwatch = Stopwatch.StartNew();
-                var existingRecord = await _context.ImageCache
-                    .FirstOrDefaultAsync(ic => ic.PageID == imageCacheResponseDTO.PageID && ic.HashValue == hashValue);
+                var imageCacheEntity = await _context.ImageCache
+                    .Include(ic => ic.Product)
+                    .Include(ic => ic.Supplier)
+                    .FirstOrDefaultAsync(ic => ic.HashValue == hashValue && ic.Status == true);
                 dbStopwatch.Stop();
-                _logger.LogInformation("CreateImageCache - Database check completed in {ElapsedMilliseconds}ms. Found: {Found}", dbStopwatch.ElapsedMilliseconds, existingRecord != null);
+                _logger.LogInformation("GetImageByPrompt - Database check completed in {ElapsedMilliseconds}ms. Found: {Found}", dbStopwatch.ElapsedMilliseconds, imageCacheEntity != null);
 
-
-                if (existingRecord != null)
+                if (imageCacheEntity == null)
                 {
-                    // Mevcut kaydı GÜNCELLE
-                    _logger.LogInformation("CreateImageCache - Existing DB record found (ID: {ID}). Updating with new image (Size: {ImageSize} bytes).", existingRecord.ID, imageBytes.Length);
-                    existingRecord.Image = imageBytes;
-                    existingRecord.Status = true;
-                    existingRecord.Prompt = imageCacheResponseDTO.Prompt;
-                    existingRecord.ProductID = imageCacheResponseDTO.ProductId;
+                    stopwatch.Stop();
+                    _logger.LogWarning("END GetImageByPrompt - Not Found in DB or Redis for Prompt: {Prompt}. Total time: {ElapsedMilliseconds}ms", prompt, stopwatch.ElapsedMilliseconds);
+                    return NotFound(new { success = false, message = "Image not found for the given prompt." });
+                }
 
-                    try
+                if (imageCacheEntity.Image == null || imageCacheEntity.Image.Length == 0)
+                {
+                    _logger.LogWarning("GetImageByPrompt - Found record in DB (ID: {ID}) but Image data is empty for Prompt: {Prompt}", imageCacheEntity.ID, prompt);
+                    stopwatch.Stop();
+                    return NotFound(new { success = false, message = "Image record found but data is empty." });
+                }
+
+                var base64Image = Convert.ToBase64String(imageCacheEntity.Image);
+                _logger.LogInformation("GetImageByPrompt - Image found in DB (ID: {ID}). Image size: {ImageSize} bytes.", imageCacheEntity.ID, imageCacheEntity.Image.Length);
+
+                _logger.LogInformation("GetImageByPrompt - Saving DB image to Redis for HashValue: {HashValue}", hashValue);
+                var redisSaveStopwatch = Stopwatch.StartNew();
+                await _redisService.SaveImageToCacheAsync(hashValue, base64Image);
+                redisSaveStopwatch.Stop();
+                _logger.LogInformation("GetImageByPrompt - Saved image to Redis in {ElapsedMilliseconds}ms.", redisSaveStopwatch.ElapsedMilliseconds);
+                
+                var mappedResponse = _mapper.Map<ImageCacheResponseDTO>(imageCacheEntity);
+                // Eğer recordToSave'de Product/Supplier bilgisi yoksa (yeni eklenmişse ve Product/Supplier yüklenmemişse),
+                // DTO'dan gelen ProductId/SupplierId ile tekrar yükleyip mapleyebiliriz veya mapper'a bırakabiliriz.
+                // Mevcut mapper Product ve Supplier navigation property'lerinden isimleri alıyor.
+                // SaveChanges sonrası recordToSave.Product ve recordToSave.Supplier null olabilir eğer ProductID/SupplierID yeni atandıysa ve explicit load yapılmadıysa.
+                // Bu yüzden, response için gerekirse tekrar Product/Supplier yükleyelim.
+                if (imageCacheEntity.ProductID.HasValue && imageCacheEntity.Product == null)
+                {
+                    imageCacheEntity.Product = await _context.Products.FindAsync(imageCacheEntity.ProductID.Value);
+                    mappedResponse.ProductName = imageCacheEntity.Product?.ProductName;
+                }
+                 if (imageCacheEntity.SupplierID.HasValue && imageCacheEntity.Supplier == null)
+                {
+                    imageCacheEntity.Supplier = await _context.Suppliers.FindAsync(imageCacheEntity.SupplierID.Value);
+                    mappedResponse.SupplierName = imageCacheEntity.Supplier?.SupplierName;
+                }
+                mappedResponse.Base64Image = base64Image; // İstemciye gönderilen resim
+                mappedResponse.ImageUrl = $"/api/imagecache/image/{imageCacheEntity.ID}"; // Her zaman ImageUrl sağla
+
+                stopwatch.Stop();
+                _logger.LogInformation("END GetImageByPrompt - Found in DB, saved to Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
+                return Ok(new { success = true, data = mappedResponse, source = "database_cache" });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "ERROR GetImageByPrompt - Exception for Prompt: {Prompt}. Total time: {ElapsedMilliseconds}ms", prompt, stopwatch.ElapsedMilliseconds);
+                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        // POST: api/imagecache - Genel resim cache'i oluşturma/güncelleme (YENİ DTO ile)
+        [HttpPost] // Route attribute'u class seviyesinde olduğu için path belirtmeye gerek yok ("/")
+        [Produces("application/json")]
+        public async Task<IActionResult> CreateOrUpdateImageCache([FromBody] ImageCacheDTO imageCacheDTO) // DTO Tipi Değişti
+        {
+            var stopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("START CreateOrUpdateImageCache - Received DTO: {@ImageCacheDTO}", imageCacheDTO);
+
+            if (imageCacheDTO == null || string.IsNullOrEmpty(imageCacheDTO.Prompt) || string.IsNullOrEmpty(imageCacheDTO.Base64Image))
+            {
+                _logger.LogWarning("CreateOrUpdateImageCache - Bad Request: DTO is null or missing Prompt/Base64Image.");
+                stopwatch.Stop();
+                return BadRequest(new { success = false, message = "Request body is invalid. Prompt and Base64Image are required." });
+            }
+
+            byte[] imageBytes;
+            try
+            {
+                imageBytes = Convert.FromBase64String(imageCacheDTO.Base64Image);
+                if (imageBytes.Length == 0) throw new FormatException("Image data is empty after decoding.");
+                _logger.LogInformation("CreateOrUpdateImageCache - Base64 decoding successful. Image size: {ImageSize} bytes for Prompt: {Prompt}", imageBytes.Length, imageCacheDTO.Prompt);
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogError(ex, "CreateOrUpdateImageCache - Base64 decoding error for Prompt: {Prompt}", imageCacheDTO.Prompt);
+                stopwatch.Stop();
+                return BadRequest(new { success = false, message = $"Invalid Base64 image data: {ex.Message}" });
+            }
+
+            var hashValue = GenerateHash(imageCacheDTO.Prompt);
+            _logger.LogInformation("CreateOrUpdateImageCache - Generated HashValue: {HashValue} for Prompt: {Prompt}", hashValue, imageCacheDTO.Prompt);
+
+            try
+            {
+                var existingRecord = await _context.ImageCache
+                    .Include(ic => ic.Product)
+                    .Include(ic => ic.Supplier)
+                    .FirstOrDefaultAsync(ic => ic.HashValue == hashValue);
+
+                string actionType = existingRecord != null ? "updated" : "created";
+                ImageCache recordToSave = existingRecord ?? new ImageCache { HashValue = hashValue, Status = true };
+
+                recordToSave.Prompt = imageCacheDTO.Prompt;
+                recordToSave.Image = imageBytes;
+                recordToSave.Status = true; // Her zaman aktif et
+
+                // EntityType ve EntityId'ye göre ProductID veya SupplierID ata
+                recordToSave.ProductID = null; // Önce sıfırla
+                recordToSave.SupplierID = null; // Önce sıfırla
+
+                if (!string.IsNullOrEmpty(imageCacheDTO.EntityType) && imageCacheDTO.EntityId.HasValue)
+                {
+                    if (imageCacheDTO.EntityType.Equals("Product", StringComparison.OrdinalIgnoreCase))
                     {
-                        var saveDbStopwatch = Stopwatch.StartNew();
-                        await _context.SaveChangesAsync(); // Save ImageCache changes (incl. ProductID)
-                        saveDbStopwatch.Stop();
-                        _logger.LogInformation("CreateImageCache - DB record updated successfully in {ElapsedMilliseconds}ms.", saveDbStopwatch.ElapsedMilliseconds);
-
-                        // ----> Update Product.ImageUrl start
-                        string? imageUrl = null;
-                        if (imageCacheResponseDTO.ProductId.HasValue)
-                        {
-                            var product = await _context.Products.FindAsync(imageCacheResponseDTO.ProductId.Value);
-                            if (product != null)
-                            {
-                                imageUrl = $"/api/ImageServe/{product.ProductID}";
-                                product.ImageUrl = imageUrl;
-                                try
-                                {
-                                    await _context.SaveChangesAsync(); // Save Product changes
-                                    _logger.LogInformation("CreateImageCache - Updated Product (ID: {ProductId}) ImageUrl to: {ImageUrl}", product.ProductID, imageUrl);
-                                }
-                                catch (DbUpdateException prodEx)
-                                {
-                                    _logger.LogError(prodEx, "CreateImageCache - Failed to update Product (ID: {ProductId}) ImageUrl.", product.ProductID);
-                                    // Continue even if product update fails? Decide on error handling.
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogWarning("CreateImageCache - Product with ID {ProductId} not found. Cannot update ImageUrl.", imageCacheResponseDTO.ProductId.Value);
-                            }
-                        }
-                        // <---- Update Product.ImageUrl end
-
-                        // Redis'i de güncelle
-                        string newBase64Image = imageCacheResponseDTO.Base64Image; // Zaten string olarak var
-                        _logger.LogInformation("CreateImageCache - Updating Redis cache for HashValue: {HashValue}", hashValue);
-                        var redisUpdateStopwatch = Stopwatch.StartNew();
-                        await _redisService.SaveImageToCacheAsync(hashValue, newBase64Image);
-                        redisUpdateStopwatch.Stop();
-                        _logger.LogInformation("CreateImageCache - Redis cache updated in {ElapsedMilliseconds}ms.", redisUpdateStopwatch.ElapsedMilliseconds);
-
-                        stopwatch.Stop();
-                        _logger.LogInformation("END CreateImageCache - Record updated in DB and Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                        // Return ImageUrl along with other info
-                        return Ok(new { success = true, image = imageCacheResponseDTO.Base64Image, imageUrl = imageUrl, message = "Image cache record updated successfully.", source = "update" });
+                        recordToSave.ProductID = imageCacheDTO.EntityId.Value;
+                        _logger.LogInformation("CreateOrUpdateImageCache - Associating with ProductID: {ProductID}", recordToSave.ProductID);
                     }
-                    catch (DbUpdateException dbEx)
+                    else if (imageCacheDTO.EntityType.Equals("Supplier", StringComparison.OrdinalIgnoreCase))
                     {
-                        stopwatch.Stop();
-                        _logger.LogError(dbEx, "ERROR CreateImageCache (DbUpdateException) - Failed to update existing DB record (ID: {ID}) after {ElapsedMilliseconds}ms. Inner Exception: {InnerException}",
-                            existingRecord.ID, stopwatch.ElapsedMilliseconds, dbEx.InnerException?.Message);
-                        return StatusCode(500, new { success = false, message = $"Database error updating record: {dbEx.Message} | Inner: {dbEx.InnerException?.Message}" });
+                        recordToSave.SupplierID = imageCacheDTO.EntityId.Value;
+                        _logger.LogInformation("CreateOrUpdateImageCache - Associating with SupplierID: {SupplierID}", recordToSave.SupplierID);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        stopwatch.Stop();
-                        _logger.LogError(ex, "ERROR CreateImageCache (General Exception) - Failed to update existing DB record (ID: {ID}) after {ElapsedMilliseconds}ms.",
-                            existingRecord.ID, stopwatch.ElapsedMilliseconds);
-                        return StatusCode(500, new { success = false, message = $"Internal server error updating record: {ex.Message}" });
+                        _logger.LogWarning("CreateOrUpdateImageCache - Unknown EntityType: {EntityType}. No association will be made.", imageCacheDTO.EntityType);
                     }
                 }
                 else
                 {
-                    // YENİ kayıt oluştur
-                    _logger.LogInformation("CreateImageCache - No existing record found. Creating new record with image size: {ImageSize} bytes.", imageBytes.Length);
-                    var newImageCache = new ImageCache
+                    _logger.LogInformation("CreateOrUpdateImageCache - No EntityType/EntityId provided. Saving as general cache.");
+                }
+
+                if (existingRecord == null)
+                {
+                    _context.ImageCache.Add(recordToSave);
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("CreateOrUpdateImageCache - DB record {ActionType} successfully (ID: {ID}).", actionType, recordToSave.ID);
+
+                // Product.ImageUrl Güncellemesi (ProductID varsa ve bu resimle ilişkilendirildiyse)
+                string? finalImageUrl = null;
+                if (recordToSave.ProductID.HasValue)
+                {
+                    var product = await _context.Products.FindAsync(recordToSave.ProductID.Value);
+                    if (product != null)
                     {
-                        PageID = imageCacheResponseDTO.PageID,
-                        Prompt = imageCacheResponseDTO.Prompt,
-                        Image = imageBytes,
-                        HashValue = hashValue,
-                        Status = true,
-                        ProductID = imageCacheResponseDTO.ProductId,
-                    };
-                    _context.ImageCache.Add(newImageCache);
-
-                    try
-                    {
-                        var saveDbStopwatch = Stopwatch.StartNew();
-                        await _context.SaveChangesAsync(); // Save new ImageCache (incl. ProductID)
-                        saveDbStopwatch.Stop();
-                        _logger.LogInformation("CreateImageCache - New DB record created successfully (ID: {ID}) in {ElapsedMilliseconds}ms.", newImageCache.ID, saveDbStopwatch.ElapsedMilliseconds);
-
-                        // ----> Update Product.ImageUrl start
-                        string? imageUrl = null;
-                        if (imageCacheResponseDTO.ProductId.HasValue)
-                        {
-                            var product = await _context.Products.FindAsync(imageCacheResponseDTO.ProductId.Value);
-                            if (product != null)
-                            {
-                                imageUrl = $"/api/ImageServe/{product.ProductID}";
-                                product.ImageUrl = imageUrl;
-                                try
-                                {
-                                    await _context.SaveChangesAsync(); // Save Product changes
-                                    _logger.LogInformation("CreateImageCache - Updated Product (ID: {ProductId}) ImageUrl to: {ImageUrl}", product.ProductID, imageUrl);
-                                }
-                                catch (DbUpdateException prodEx)
-                                {
-                                    _logger.LogError(prodEx, "CreateImageCache - Failed to update Product (ID: {ProductId}) ImageUrl.", product.ProductID);
-                                    // Decide on error handling
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogWarning("CreateImageCache - Product with ID {ProductId} not found. Cannot update ImageUrl.", imageCacheResponseDTO.ProductId.Value);
-                            }
-                        }
-                        // <---- Update Product.ImageUrl end
-
-                        // Redis'e kaydet
-                        string newBase64Image = imageCacheResponseDTO.Base64Image;
-                        _logger.LogInformation("CreateImageCache - Saving new image to Redis for HashValue: {HashValue}", hashValue);
-                        var redisSaveStopwatch = Stopwatch.StartNew();
-                        await _redisService.SaveImageToCacheAsync(hashValue, newBase64Image);
-                        redisSaveStopwatch.Stop();
-                        _logger.LogInformation("CreateImageCache - Saved new image to Redis in {ElapsedMilliseconds}ms.", redisSaveStopwatch.ElapsedMilliseconds);
-
-                        stopwatch.Stop();
-                        _logger.LogInformation("END CreateImageCache - New record created in DB and Redis. Returning OK. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-                        // Return ImageUrl along with other info
-                        return Ok(new { success = true, image = imageCacheResponseDTO.Base64Image, imageUrl = imageUrl, message = "Image cache record created successfully.", source = "new_entry" });
+                        finalImageUrl = $"/api/imagecache/image/{recordToSave.ID}";
+                        product.ImageUrl = finalImageUrl;
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("CreateOrUpdateImageCache - Updated Product (ID: {ProductId}) ImageUrl to: {ImageUrl}", product.ProductID, finalImageUrl);
                     }
-                    catch (DbUpdateException dbEx)
+                    else
                     {
-                        stopwatch.Stop();
-                        _logger.LogError(dbEx, "ERROR CreateImageCache (DbUpdateException) - Failed to create new DB record after {ElapsedMilliseconds}ms. Inner Exception: {InnerException}",
-                            stopwatch.ElapsedMilliseconds, dbEx.InnerException?.Message);
-                        return StatusCode(500, new { success = false, message = $"Database error creating record: {dbEx.Message} | Inner: {dbEx.InnerException?.Message}" });
-                    }
-                    catch (Exception ex)
-                    {
-                        stopwatch.Stop();
-                        _logger.LogError(ex, "ERROR CreateImageCache (General Exception) - Failed to create new DB record after {ElapsedMilliseconds}ms.",
-                           stopwatch.ElapsedMilliseconds);
-                        return StatusCode(500, new { success = false, message = $"Internal server error creating record: {ex.Message}" });
+                        _logger.LogWarning("CreateOrUpdateImageCache - Product with ID {ProductId} not found. Cannot update Product.ImageUrl.", recordToSave.ProductID.Value);
                     }
                 }
+
+                _logger.LogInformation("CreateOrUpdateImageCache - Saving/Updating Redis cache for HashValue: {HashValue}", hashValue);
+                await _redisService.SaveImageToCacheAsync(hashValue, imageCacheDTO.Base64Image);
+                _logger.LogInformation("CreateOrUpdateImageCache - Redis cache updated/saved.");
+
+                var responseDto = _mapper.Map<ImageCacheResponseDTO>(recordToSave);
+                if (recordToSave.ProductID.HasValue && recordToSave.Product == null) // Explicit load for response if needed
+                {
+                    recordToSave.Product = await _context.Products.FindAsync(recordToSave.ProductID.Value);
+                }
+                if (recordToSave.SupplierID.HasValue && recordToSave.Supplier == null) // Explicit load for response if needed
+                {
+                    recordToSave.Supplier = await _context.Suppliers.FindAsync(recordToSave.SupplierID.Value);
+                }
+                // Mapper zaten Product.ProductName ve Supplier.SupplierName'i dolduracak (eğer navigation property'ler yüklüyse)
+                // Bu yüzden DTO'yu tekrar mapleyebiliriz veya manuel doldurmaya devam edebiliriz.
+                // Güvenli olması için tekrar mapleyelim veya kontrol edelim.
+                var finalResponseDto = _mapper.Map<ImageCacheResponseDTO>(recordToSave); // Product/Supplier yüklendikten sonra tekrar map'le
+                finalResponseDto.Base64Image = imageCacheDTO.Base64Image;
+                finalResponseDto.ImageUrl = $"/api/imagecache/image/{recordToSave.ID}";
+
+                stopwatch.Stop();
+                _logger.LogInformation("END CreateOrUpdateImageCache - Record {ActionType}. Returning OK. Total time: {ElapsedMilliseconds}ms", actionType, stopwatch.ElapsedMilliseconds);
+                return Ok(new { success = true, data = finalResponseDto, message = $"Image cache record {actionType} successfully.", source = actionType });
             }
-            catch (Exception ex) // Genel try-catch bloğu
+            catch (DbUpdateException dbEx)
             {
                 stopwatch.Stop();
-                // DTO loglaması en başta yapıldığı için burada tekrar loglamaya gerek yok belki ama hata durumunda tekrar görmek faydalı olabilir.
-                _logger.LogError(ex, "ERROR CreateImageCache - Outer Exception occurred after {ElapsedMilliseconds}ms. Request Data: {@Request}", stopwatch.ElapsedMilliseconds, imageCacheResponseDTO);
-                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}", details = ex.StackTrace });
+                _logger.LogError(dbEx, "ERROR CreateOrUpdateImageCache (DbUpdateException) - Prompt: {Prompt}. Inner: {Inner}", imageCacheDTO.Prompt, dbEx.InnerException?.Message);
+                return StatusCode(500, new { success = false, message = $"Database error: {dbEx.InnerException?.Message ?? dbEx.Message}" });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "ERROR CreateOrUpdateImageCache (General Exception) - Prompt: {Prompt}", imageCacheDTO.Prompt);
+                return StatusCode(500, new { success = false, message = $"Internal server error: {ex.Message}" });
             }
         }
 
+        // GET: api/imagecache/products - ProductID'si olan tüm cache kayıtlarını listeler
+        [HttpGet("products")]
+        [Produces("application/json")]
+        public async Task<IActionResult> GetImageCacheByProducts()
+        {
+            _logger.LogInformation("START GetImageCacheByProducts");
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var imageCaches = await _context.ImageCache
+                    .Where(ic => ic.ProductID != null && ic.Status == true)
+                    .Include(ic => ic.Product) // Product bilgilerini çekmek için
+                    .OrderByDescending(ic => ic.ID) // En son eklenenler üste gelsin
+                    .ToListAsync();
 
+                var response = _mapper.Map<List<ImageCacheResponseDTO>>(imageCaches);
+                // ImageUrl mapper tarafından zaten set ediliyor. Base64Image'e gerek yok listelerde.
+
+                stopwatch.Stop();
+                _logger.LogInformation("END GetImageCacheByProducts - Found {Count} records. Total time: {ElapsedMilliseconds}ms", response.Count, stopwatch.ElapsedMilliseconds);
+                return Ok(new { success = true, data = response });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "ERROR GetImageCacheByProducts. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
+                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        // GET: api/imagecache/product/{productId} - Belirli bir ProductID'ye ait cache kayıtlarını listeler
+        [HttpGet("product/{productId}")]
+        [Produces("application/json")]
+        public async Task<IActionResult> GetImageCacheForProduct(int productId)
+        {
+            _logger.LogInformation("START GetImageCacheForProduct - ProductID: {ProductID}", productId);
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var imageCaches = await _context.ImageCache
+                    .Where(ic => ic.ProductID == productId && ic.Status == true)
+                    .Include(ic => ic.Product)
+                    .OrderByDescending(ic => ic.ID)
+                    .ToListAsync();
+
+                if (!imageCaches.Any())
+                {
+                    _logger.LogWarning("GetImageCacheForProduct - No active images found for ProductID: {ProductID}", productId);
+                    // return NotFound(new { success = false, message = $"No active images found for ProductID {productId}." });
+                    // Boş liste dönmek daha iyi olabilir.
+                }
+                
+                var response = _mapper.Map<List<ImageCacheResponseDTO>>(imageCaches);
+
+                stopwatch.Stop();
+                _logger.LogInformation("END GetImageCacheForProduct - Found {Count} records for ProductID: {ProductID}. Total time: {ElapsedMilliseconds}ms", response.Count, productId, stopwatch.ElapsedMilliseconds);
+                return Ok(new { success = true, data = response });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "ERROR GetImageCacheForProduct - ProductID: {ProductID}. Total time: {ElapsedMilliseconds}ms", productId, stopwatch.ElapsedMilliseconds);
+                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        // GET: api/imagecache/suppliers - SupplierID'si olan tüm cache kayıtlarını listeler
+        [HttpGet("suppliers")]
+        [Produces("application/json")]
+        public async Task<IActionResult> GetImageCacheBySuppliers()
+        {
+            _logger.LogInformation("START GetImageCacheBySuppliers");
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var imageCaches = await _context.ImageCache
+                    .Where(ic => ic.SupplierID != null && ic.Status == true)
+                    .Include(ic => ic.Supplier) // Supplier bilgilerini çekmek için
+                    .OrderByDescending(ic => ic.ID)
+                    .ToListAsync();
+
+                var response = _mapper.Map<List<ImageCacheResponseDTO>>(imageCaches);
+
+                stopwatch.Stop();
+                _logger.LogInformation("END GetImageCacheBySuppliers - Found {Count} records. Total time: {ElapsedMilliseconds}ms", response.Count, stopwatch.ElapsedMilliseconds);
+                return Ok(new { success = true, data = response });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "ERROR GetImageCacheBySuppliers. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
+                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        // GET: api/imagecache/supplier/{supplierId} - Belirli bir SupplierID'ye ait cache kayıtlarını listeler
+        [HttpGet("supplier/{supplierId}")]
+        [Produces("application/json")]
+        public async Task<IActionResult> GetImageCacheForSupplier(int supplierId)
+        {
+            _logger.LogInformation("START GetImageCacheForSupplier - SupplierID: {SupplierID}", supplierId);
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var imageCaches = await _context.ImageCache
+                    .Where(ic => ic.SupplierID == supplierId && ic.Status == true)
+                    .Include(ic => ic.Supplier)
+                    .OrderByDescending(ic => ic.ID)
+                    .ToListAsync();
+                
+                var response = _mapper.Map<List<ImageCacheResponseDTO>>(imageCaches);
+
+                stopwatch.Stop();
+                _logger.LogInformation("END GetImageCacheForSupplier - Found {Count} records for SupplierID: {SupplierID}. Total time: {ElapsedMilliseconds}ms", response.Count, supplierId, stopwatch.ElapsedMilliseconds);
+                return Ok(new { success = true, data = response });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "ERROR GetImageCacheForSupplier - SupplierID: {SupplierID}. Total time: {ElapsedMilliseconds}ms", supplierId, stopwatch.ElapsedMilliseconds);
+                return StatusCode(500, new { success = false, error = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        // DELETE: api/imagecache/{id} - Bir cache kaydını soft delete eder (Status=false) ve Redis'ten siler
         [HttpDelete("{id}")]
         [Produces("application/json")]
-        public async Task<IActionResult> SoftDeleteImageCacheByStatus(int id)
+        public async Task<IActionResult> SoftDeleteImageCache(int id) // Metod adı daha açıklayıcı
         {
             var stopwatch = Stopwatch.StartNew();
-            _logger.LogInformation("START SoftDeleteImageCacheByStatus - ID: {ID}", id);
+            _logger.LogInformation("START SoftDeleteImageCache - ID: {ID}", id);
 
             var imageCache = await _context.ImageCache.FindAsync(id);
 
             if (imageCache == null)
             {
-                _logger.LogWarning("SoftDeleteImageCacheByStatus - Not Found: Record with ID {ID} not found.", id);
+                _logger.LogWarning("SoftDeleteImageCache - Not Found: Record with ID {ID} not found.", id);
                 stopwatch.Stop();
                 return NotFound(new { success = false, message = $"Image cache record with ID {id} not found." });
             }
 
-            _logger.LogInformation("SoftDeleteImageCacheByStatus - Found record (ID: {ID}). Current Status: {Status}, HashValue: {HashValue}", imageCache.ID, imageCache.Status, imageCache.HashValue);
+            _logger.LogInformation("SoftDeleteImageCache - Found record (ID: {ID}). Current Status: {Status}, HashValue: {HashValue}", imageCache.ID, imageCache.Status, imageCache.HashValue);
 
             // Redis'ten sil (varsa)
             if (!string.IsNullOrEmpty(imageCache.HashValue))
             {
-                _logger.LogInformation("SoftDeleteImageCacheByStatus - Deleting from Redis cache. HashValue: {HashValue}", imageCache.HashValue);
-                var redisDeleteStopwatch = Stopwatch.StartNew();
+                _logger.LogInformation("SoftDeleteImageCache - Deleting from Redis cache. HashValue: {HashValue}", imageCache.HashValue);
                 await _redisService.DeleteFromCacheAsync(imageCache.HashValue);
-                redisDeleteStopwatch.Stop();
-                _logger.LogInformation("SoftDeleteImageCacheByStatus - Redis delete completed in {ElapsedMilliseconds}ms.", redisDeleteStopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("SoftDeleteImageCache - Redis delete completed.");
             }
 
             // DB'de durumu güncelle (Soft delete)
             imageCache.Status = false;
-            _logger.LogInformation("SoftDeleteImageCacheByStatus - Updating DB record status to false for ID: {ID}", id);
-            var dbUpdateStopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("SoftDeleteImageCache - Updating DB record status to false for ID: {ID}", id);
             await _context.SaveChangesAsync();
-            dbUpdateStopwatch.Stop();
-            _logger.LogInformation("SoftDeleteImageCacheByStatus - DB status updated in {ElapsedMilliseconds}ms.", dbUpdateStopwatch.ElapsedMilliseconds);
-
-
+            _logger.LogInformation("SoftDeleteImageCache - DB status updated.");
+            
             stopwatch.Stop();
-            _logger.LogInformation("END SoftDeleteImageCacheByStatus - Completed successfully. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
-            // NoContent() yerine OK dönmek, frontend'e bilgi vermek için daha iyi olabilir.
+            _logger.LogInformation("END SoftDeleteImageCache - Completed successfully. Total time: {ElapsedMilliseconds}ms", stopwatch.ElapsedMilliseconds);
             return Ok(new { success = true, message = $"Image cache record with ID {id} marked as deleted." });
-            // return NoContent(); // Orijinal yanıt
-        }
-
-        // Hash üretme fonksiyonu (private ve static olabilir)
-        private static string GenerateHash(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-            {
-                // _logger.LogWarning("GenerateHash - Input string is null or empty."); // Static metodda logger yok
-                return string.Empty;
-            }
-
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-                byte[] hashBytes = sha256.ComputeHash(inputBytes);
-                // StringBuilder kullanmak daha performanslı olabilir ama kısa string için fark etmez.
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant(); // ToLowerInvariant daha güvenli
-            }
         }
     }
 }

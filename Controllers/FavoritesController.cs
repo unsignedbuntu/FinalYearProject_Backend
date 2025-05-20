@@ -54,6 +54,13 @@ namespace KTUN_Final_Year_Project.Controllers
                 })
                 .ToListAsync();
 
+            // FavoritesController.cs - GetUserFavorites içinde
+            // ...
+            Console.WriteLine($"GetUserFavorites for UserID: {userId} - Found {favorites.Count} items.");
+            foreach (var fav in favorites)
+            {
+                Console.WriteLine($"-- ProductId: {fav.ProductId}, ProductName: {fav.ProductName}, Price: {fav.Price}");
+            }
             return Ok(favorites);
         }
 

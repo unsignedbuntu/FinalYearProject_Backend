@@ -233,14 +233,24 @@
             {
                 entity.HasKey(e => e.ID);
                 entity.ToTable("ImageCache");
-                entity.Property(e => e.PageID).HasMaxLength(100);
                 entity.Property(e => e.HashValue).HasMaxLength(64);
-                entity.HasIndex(e => e.HashValue).IsUnique().HasFilter("[HashValue] IS NOT NULL");
+                entity.HasIndex(e => e.HashValue)
+                    .IsUnique()
+                    .HasFilter("[HashValue] IS NOT NULL")
+                    .HasDatabaseName("IX_ImageCache_HashValue_Unique");
                 entity.Property(e => e.Status).IsRequired().HasDefaultValue(true);
                 entity.HasOne(d => d.Product)
                       .WithMany()
                       .HasForeignKey(d => d.ProductID)
                       .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(d => d.Supplier)
+                      .WithMany()
+                      .HasForeignKey(d => d.SupplierID)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasIndex(e => e.ProductID, "IX_ImageCache_ProductID")
+                    .HasFilter("[ProductID] IS NOT NULL");
+                entity.HasIndex(e => e.SupplierID, "IX_ImageCache_SupplierID")
+                    .HasFilter("[SupplierID] IS NOT NULL");
             });
 
             modelBuilder.Entity<Orders>(entity =>
