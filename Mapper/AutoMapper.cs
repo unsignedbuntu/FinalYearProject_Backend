@@ -42,6 +42,14 @@ namespace KTUN_Final_Year_Project.Mapper
             CreateMap<FavoriteListItemDTO, FavoriteListItem>()
                 .ForMember(dest => dest.ProductID, opt => opt.MapFrom(src => src.ProductId));
 
+            // Mappings for UserInformation
+            CreateMap<UserInformationDto, UserInformation>(); // DTO -> Entity
+            CreateMap<UserInformation, UserInformationDto>(); // Entity -> DTO (basic)
+
+            // Mappings for UserAddress
+            CreateMap<UserAddressDto, UserAddress>(); // DTO -> Entity
+            CreateMap<UserAddress, UserAddressDto>(); // Entity -> DTO (basic)
+
             // Entity -> ResponseDTO
             CreateMap<Categories, CategoriesResponseDTO>()
                 .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.StoreName : string.Empty))
@@ -128,6 +136,14 @@ namespace KTUN_Final_Year_Project.Mapper
                     ? (src.Product.ProductSuppliers.First().Supplier != null ? src.Product.ProductSuppliers.First().Supplier.SupplierName : null) 
                     : null
                 ));
+
+            // Mappings for UserInformation -> UserInformationResponseDto
+            CreateMap<UserInformation, UserInformationResponseDto>();
+                // .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null)); // Example if UserEmail is needed
+
+            // Mappings for UserAddress -> UserAddressResponseDto
+            CreateMap<UserAddress, UserAddressResponseDto>();
+                // .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null)); // Example if UserEmail is needed
         }
     }
 }

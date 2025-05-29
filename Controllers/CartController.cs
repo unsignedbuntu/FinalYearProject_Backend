@@ -42,7 +42,9 @@ namespace KTUN_Final_Year_Project.Controllers
 
             var cartItems = await _context.UserCartItems
                                 .Where(ci => ci.UserID == userId)
-                                .Include(ci => ci.Product) // Include Products entity
+                                .Include(ci => ci.Product)                 // Product'ı dahil et
+                                    .ThenInclude(p => p.ProductSuppliers)   // Product üzerinden ProductSuppliers koleksiyonunu dahil et
+                                        .ThenInclude(ps => ps.Supplier)     // Her bir ProductSupplier üzerinden ilgili Supplier'ı dahil et
                                 .Select(ci => new CartItemDto
                                 {
                                     UserCartItemId = ci.UserCartItemID, // Use correct ID property
@@ -53,7 +55,13 @@ namespace KTUN_Final_Year_Project.Controllers
                                     ImageUrl = ci.Product.ImageUrl, // Use ImageUrl from Products
                                     InStock = ci.Product.StockQuantity > 0, // Added InStock
                                     AddedDate = ci.AddedDate,
-                                    Price = ci.Product.Price // Assuming Price in DTO is UnitPrice
+                                    Price = ci.Product.Price, // Eğer Price, toplam fiyat (BirimFiyat * Miktar) olmalıysa: ci.Product.Price * ci.Quantity
+
+                                    // === GÜNCELLENEN KISIM ===
+                                    SupplierName = ci.Product.ProductSuppliers // Product entity'sindeki ProductSuppliers koleksiyonunu kullan
+                                                     .Select(ps => ps.Supplier.SupplierName) // Her bir ProductSupplier'dan Supplier'ın SupplierName'ini seç
+                                                     .FirstOrDefault() ?? "There is no supplier information" // İlk tedarikçinin adını al veya fallback kullan
+                                    // ==========================
                                 })
                                 .ToListAsync();
 
@@ -75,8 +83,12 @@ namespace KTUN_Final_Year_Project.Controllers
                 return BadRequest("Quantity must be greater than zero.");
             }
 
-            // Check if product exists
-            var product = await _context.Products.FindAsync(request.ProductId);
+            // Check if product exists AND INCLUDE SUPPLIER INFO
+            var product = await _context.Products
+                                .Include(p => p.ProductSuppliers) // ProductSuppliers koleksiyonunu dahil et
+                                    .ThenInclude(ps => ps.Supplier) // Her bir ProductSupplier üzerinden ilgili Supplier'ı dahil et
+                                .FirstOrDefaultAsync(p => p.ProductID == request.ProductId); // ProductID ile bul
+
             if (product == null)
             {
                 return BadRequest("Product not found.");
@@ -113,7 +125,7 @@ namespace KTUN_Final_Year_Project.Controllers
             catch (DbUpdateException ex)
             {
                 // Log exception (ex)
-                Console.WriteLine($"Error adding/updating cart item: {ex.ToString()}"); // Log full exception
+                Console.WriteLine($"Error adding/updating cart item: {ex.ToString()} "); // Log full exception
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the cart.");
             }
 
@@ -128,7 +140,13 @@ namespace KTUN_Final_Year_Project.Controllers
                 Quantity = existingCartItem.Quantity,
                 ImageUrl = product.ImageUrl, // Map ImageUrl here too
                 InStock = product.StockQuantity > 0, // Added InStock
-                AddedDate = existingCartItem.AddedDate
+                AddedDate = existingCartItem.AddedDate,
+
+                // === GÜNCELLENEN KISIM ===
+                SupplierName = product.ProductSuppliers // Dahil ettiğimiz product nesnesindeki ProductSuppliers koleksiyonunu kullan
+                                 .Select(ps => ps.Supplier.SupplierName)
+                                 .FirstOrDefault() ?? "There is no supplier information"
+                // ==========================
             };
 
             return Ok(resultDto);
@@ -268,4 +286,4 @@ namespace KTUN_Final_Year_Project.Controllers
             return null;
         }
     }
-} 
+}

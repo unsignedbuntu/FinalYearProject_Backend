@@ -4,6 +4,7 @@ using KTUN_Final_Year_Project;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KTUN_Final_Year_Project.Migrations
 {
     [DbContext(typeof(KTUN_DbContext))]
-    partial class KTUN_DbContextModelSnapshot : ModelSnapshot
+    [Migration("20250529022104_AddUserInformationAndAddresses")]
+    partial class AddUserInformationAndAddresses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -743,10 +746,6 @@ namespace KTUN_Final_Year_Project.Migrations
                     b.Property<string>("LastName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("UserID")
                         .HasColumnType("int");

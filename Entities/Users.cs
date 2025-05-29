@@ -29,6 +29,10 @@ namespace KTUN_Final_Year_Project.Entities
         public virtual ICollection<Reviews> Reviews { get; set; } = new List<Reviews>();
         public virtual ICollection<SupportMessages> SupportMessages { get; set; } = new List<SupportMessages>();
 
+        // New navigation properties for UserInformation (one-to-one) and UserAddresses (one-to-many)
+        public virtual UserInformation UserInformation { get; set; }
+        public virtual ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
+
         // Existing unique index configuration in DbContext needs to be updated if NFC_CardID should remain unique.
 
         // Constructor might not be needed anymore unless for specific initialization logic.

@@ -13,25 +13,25 @@ namespace KTUN_Final_Year_Project.DTOs
     public class ProductSearchResultDto
     {
         public int ProductID { get; set; }
-        public string ProductName { get; set; }
+        public string? ProductName { get; set; }
         public string? ImageUrl { get; set; } // Changed to ImageUrl as per product entity
     }
 
     public class CategorySearchResultDto
     {
         public int CategoryID { get; set; }
-        public string CategoryName { get; set; }
+        public string? CategoryName { get; set; }
     }
 
     public class StoreSearchResultDto
     {
         public int StoreID { get; set; }
-        public string StoreName { get; set; }
+        public string? StoreName { get; set; }
     }
 
     public class SupplierSearchResultDto
     {
         public int SupplierID { get; set; }
-        public string SupplierName { get; set; }
+        public string? SupplierName { get; set; }
     }
 } 

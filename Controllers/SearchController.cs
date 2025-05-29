@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
+using KTUN_Final_Year_Project.ResponseDTOs;
+using System.Collections.Generic;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -24,7 +26,7 @@ namespace KTUN_Final_Year_Project.Controllers
         {
             if (string.IsNullOrWhiteSpace(q))
             {
-                return BadRequest(new { message = "Search term (q) cannot be empty." });
+                return BadRequest(new ApiResponseDto<object> { Success = false, Message = "Search term (q) cannot be empty." });
             }
 
             var searchTerm = q.ToLower(); // Case-insensitive search
@@ -80,12 +82,13 @@ namespace KTUN_Final_Year_Project.Controllers
                     Suppliers = suppliers
                 };
 
-                return Ok(result);
+                return Ok(new ApiResponseDto<GlobalSearchResultDto> { Success = true, Data = result, Message = "Search completed successfully." });
             }
             catch (System.Exception ex)
             {
                 // Log the exception (implementation depends on your logging setup)
-                return StatusCode(500, new { message = "An error occurred while processing your request.", details = ex.Message });
+                // Consider logging ex.ToString() for more details including stack trace
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, Message = "An error occurred while processing your request.", Errors = new List<string> { ex.Message } });
             }
         }
     }

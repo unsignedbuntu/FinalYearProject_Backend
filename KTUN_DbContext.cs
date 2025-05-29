@@ -33,6 +33,8 @@
         public DbSet<UserCartItem> UserCartItems { get; set; } = null!;
         public DbSet<FavoriteList> FavoriteLists { get; set; } = null!;
         public DbSet<FavoriteListItem> FavoriteListItems { get; set; } = null!;
+        public DbSet<UserInformation> UserInformation { get; set; } = null!;
+        public DbSet<UserAddress> UserAddresses { get; set; } = null!;
         public KTUN_DbContext(DbContextOptions<KTUN_DbContext> options) : base(options)
         {
 
@@ -56,6 +58,18 @@
                 entity.Property(e => e.Address).IsRequired(false);
                 entity.Property(e => e.NFC_CardID).IsRequired(false).HasMaxLength(450);
                 entity.Property(e => e.Status).IsRequired().HasDefaultValue(true);
+
+                // Configure one-to-one relationship with UserInformation
+                entity.HasOne(u => u.UserInformation)
+                      .WithOne(ui => ui.User)
+                      .HasForeignKey<UserInformation>(ui => ui.UserID)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Configure one-to-many relationship with UserAddresses
+                entity.HasMany(u => u.UserAddresses)
+                      .WithOne(ua => ua.User)
+                      .HasForeignKey(ua => ua.UserID)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Stores>(entity =>
@@ -429,6 +443,27 @@
                       .WithMany() // Products entity'sinde bir ICollection<FavoriteListItem>? FavoriteListItems { get; set; } tanımlanmadıysa
                       .HasForeignKey(d => d.ProductID)
                       .OnDelete(DeleteBehavior.Cascade); // Ürün silinirse listeden de sil
+            });
+
+            // UserInformation Configuration
+            modelBuilder.Entity<UserInformation>(entity =>
+            {
+                entity.HasKey(e => e.UserInformationID);
+                entity.ToTable("UserInformation");
+
+                entity.HasIndex(e => e.UserID).IsUnique().HasDatabaseName("UQ_UserInformation_UserID");
+
+                // FK to Users is handled by the Users entity configuration (HasOne-WithOne)
+            });
+
+            // UserAddresses Configuration
+            modelBuilder.Entity<UserAddress>(entity =>
+            {
+                entity.HasKey(e => e.UserAddressID);
+                entity.ToTable("UserAddresses");
+
+                // Properties are configured via DataAnnotations in the entity class itself.
+                // FK to Users is handled by the Users entity configuration (HasMany-WithOne)
             });
         }
     }
