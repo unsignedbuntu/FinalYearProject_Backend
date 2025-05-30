@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore; // Added for DbUpdateException and KTUN_DbContext
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -24,60 +25,99 @@ namespace KTUN_Final_Year_Project.Controllers
         private readonly SignInManager<Users> _signInManager; // We might not need SignInManager directly if only generating tokens
         private readonly IConfiguration _configuration;
         private readonly RoleManager<IdentityRole<int>> _roleManager; // Optional: if using roles
+        private readonly KTUN_DbContext _context; // Added KTUN_DbContext
 
         public AuthController(
             UserManager<Users> userManager,
             SignInManager<Users> signInManager,
             IConfiguration configuration,
-            RoleManager<IdentityRole<int>> roleManager) // Inject RoleManager if roles are needed
+            RoleManager<IdentityRole<int>> roleManager, // Inject RoleManager if roles are needed
+            KTUN_DbContext context) // Injected KTUN_DbContext
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _roleManager = roleManager; // Assign RoleManager
+            _context = context; // Assigned KTUN_DbContext
         }
 
         // POST: api/Auth/Register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            // Check if model state is valid based on DTO attributes
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                // Return a more structured error response
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                return BadRequest(new { success = false, message = "Validation failed.", errors });
             }
 
-            // Check if user already exists
             var userExists = await _userManager.FindByEmailAsync(registerDto.Email);
             if (userExists != null)
             {
-                return BadRequest(new { Status = "Error", Message = "User with this email already exists!" });
+                return BadRequest(new { success = false, message = "User with this email already exists!" });
             }
 
-            // Create the user object
+            // 1. Create Users (Identity User)
             Users user = new Users()
             {
                 Email = registerDto.Email,
-                SecurityStamp = Guid.NewGuid().ToString(), // Necessary for Identity
-                UserName = registerDto.Email, // Use email as username for simplicity
+                SecurityStamp = Guid.NewGuid().ToString(),
+                UserName = registerDto.Email, // Or a unique username if different from email
+                FirstName = registerDto.FirstName, // Assign FirstName
+                LastName = registerDto.LastName,   // Assign LastName
+                // FullName can be derived or set explicitly if still needed in Users table
                 FullName = $"{registerDto.FirstName} {registerDto.LastName}",
-                PhoneNumber = registerDto.PhoneNumber,
-                Status = true // Default status
+                PhoneNumber = registerDto.PhoneNumber?.Trim(), // Assign PhoneNumber from DTO
+                Status = true
             };
 
-            // Create the user in the database
-            var result = await _userManager.CreateAsync(user, registerDto.Password);
+            var identityResult = await _userManager.CreateAsync(user, registerDto.Password);
 
-            if (!result.Succeeded)
+            if (!identityResult.Succeeded)
             {
-                // Collect errors
-                var errors = result.Errors.Select(e => e.Description);
-                return BadRequest(new { Status = "Error", Message = "User creation failed! Please check user details and try again.", Errors = errors });
+                var identityErrors = identityResult.Errors.Select(e => e.Description);
+                return BadRequest(new { success = false, message = "User creation failed!", errors = identityErrors });
+            }
+
+            // 2. Create UserInformation Record
+            // user.Id is populated after CreateAsync is successful
+            UserInformation newUserInfo = new UserInformation
+            {
+                UserID = user.Id, // Foreign Key to the Users table
+                FirstName = registerDto.FirstName,
+                LastName = registerDto.LastName,
+                PhoneNumber = registerDto.PhoneNumber?.Trim(),
+                DateOfBirth = registerDto.DateOfBirth // Assign DateOfBirth from DTO
+            };
+
+            _context.UserInformation.Add(newUserInfo);
+
+            try
+            {
+                await _context.SaveChangesAsync(); // Save UserInformation to the database
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the error
+                Console.WriteLine($"Error saving UserInformation for UserID {user.Id}: {ex.InnerException?.Message ?? ex.Message}");
+                // Important: User (Identity) was already created. 
+                // If saving UserInformation fails, you might want to:
+                // 1. Inform the user that their basic account was created but profile info failed, ask to update later.
+                // 2. Implement a transaction to roll back user creation if UserInfo fails (more complex).
+                // For now, we'll just log and return a success for the user creation part,
+                // as the primary registration (Identity user) succeeded.
+                // However, it's better to signal that something went partially wrong.
+                // Consider if you want to delete the created user if UserInformation saving fails.
+                // For simplicity, we'll proceed but this is a point of attention for robust error handling.
+                 await _userManager.DeleteAsync(user); // Attempt to delete the user if UserInformation fails
+                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "An error occurred while saving user details. User registration rolled back.", error = ex.Message });
             }
 
             // TODO: Optionally assign roles here (e.g., await _userManager.AddToRoleAsync(user, "User");)
+            // Example: await _userManager.AddToRoleAsync(user, "User");
 
-            return Ok(new { Status = "Success", Message = "User created successfully!" });
+            return Ok(new { success = true, message = "User created successfully!" });
         }
 
         // POST: api/Auth/Login

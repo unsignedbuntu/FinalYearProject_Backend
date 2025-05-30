@@ -14,10 +14,16 @@ namespace KTUN_Final_Year_Project.Entities
         // Email is inherited from IdentityUser
         // PhoneNumber is inherited from IdentityUser
 
-        // Keep custom properties
-        public string FullName { get; set; }
-        public string Address { get; set; }
-        public string NFC_CardID { get; set; }
+        // Custom properties based on your SQL schema
+        [StringLength(100)]
+        public string? FirstName { get; set; } // Added based on your SQL
+
+        [StringLength(100)]
+        public string? LastName { get; set; } // Added based on your SQL
+
+        public string? FullName { get; set; } // Made nullable
+        public string? Address { get; set; } // Made nullable
+        public string? NFC_CardID { get; set; } // Made nullable
         public bool Status { get; set; } = true; // Renamed from IsActive for clarity potentially? Or keep Status? Let's keep Status for now.
 
         // Navigation Properties
@@ -30,8 +36,11 @@ namespace KTUN_Final_Year_Project.Entities
         public virtual ICollection<SupportMessages> SupportMessages { get; set; } = new List<SupportMessages>();
 
         // New navigation properties for UserInformation (one-to-one) and UserAddresses (one-to-many)
-        public virtual UserInformation UserInformation { get; set; }
+        public virtual UserInformation? UserInformation { get; set; }
         public virtual ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
+
+        // Navigation property for UserFollowedSuppliers
+        public virtual ICollection<UserFollowedSupplier> FollowedSuppliers { get; set; } = new List<UserFollowedSupplier>();
 
         // Existing unique index configuration in DbContext needs to be updated if NFC_CardID should remain unique.
 

@@ -35,6 +35,7 @@
         public DbSet<FavoriteListItem> FavoriteListItems { get; set; } = null!;
         public DbSet<UserInformation> UserInformation { get; set; } = null!;
         public DbSet<UserAddress> UserAddresses { get; set; } = null!;
+        public DbSet<UserFollowedSupplier> UserFollowedSuppliers { get; set; } = null!;
         public KTUN_DbContext(DbContextOptions<KTUN_DbContext> options) : base(options)
         {
 
@@ -464,6 +465,29 @@
 
                 // Properties are configured via DataAnnotations in the entity class itself.
                 // FK to Users is handled by the Users entity configuration (HasMany-WithOne)
+            });
+
+            // UserFollowedSupplier Configuration
+            modelBuilder.Entity<UserFollowedSupplier>(entity =>
+            {
+                entity.HasKey(e => e.UserFollowedSupplierID);
+                entity.ToTable("UserFollowedSuppliers");
+
+                entity.HasIndex(ufs => new { ufs.UserID, ufs.SupplierID })
+                      .IsUnique()
+                      .HasDatabaseName("UQ_User_Supplier_Follow"); // SQL script'inizdeki isimle eşleştiğinden emin olun
+
+                // FK to Users (UserID)
+                entity.HasOne(ufs => ufs.User)
+                      .WithMany(u => u.FollowedSuppliers) // Users.cs'teki ICollection<UserFollowedSupplier> FollowedSuppliers ile eşleşiyor
+                      .HasForeignKey(ufs => ufs.UserID)
+                      .OnDelete(DeleteBehavior.Cascade); // Kullanıcı silinirse takip bilgisi de silinsin
+
+                // FK to Suppliers (SupplierID)
+                entity.HasOne(ufs => ufs.Supplier)
+                      .WithMany(s => s.Followers) // Suppliers.cs'teki ICollection<UserFollowedSupplier> Followers ile eşleşiyor
+                      .HasForeignKey(ufs => ufs.SupplierID)
+                      .OnDelete(DeleteBehavior.Cascade); // Tedarikçi silinirse takip bilgisi de silinsin
             });
         }
     }

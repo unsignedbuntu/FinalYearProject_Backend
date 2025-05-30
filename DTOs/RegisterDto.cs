@@ -14,19 +14,17 @@ namespace KTUN_Final_Year_Project.DTOs
         [EmailAddress(ErrorMessage = "Invalid Email Address")]
         public string Email { get; set; } = default!;
 
-        // Optional for now, can be added to Users entity later if needed
         public string? PhoneNumber { get; set; }
 
         [Required(ErrorMessage = "Password is required")]
         [DataType(DataType.Password)]
-        // Consider adding complexity requirements validation later
         public string Password { get; set; } = default!;
 
         [Required(ErrorMessage = "Confirm Password is required")]
         [DataType(DataType.Password)]
-        [Compare("Password", ErrorMessage = "Password and Confirm Password do not match.")]
-        public string ConfirmPassword { get; set; } = default!;
+        [Compare(nameof(Password), ErrorMessage = "Password and Confirm Password do not match.")]
+        public string ConfirmPassword { get; set; } = default!; // Bu alan DTO'da kalmalý ve frontend göndermeli
 
-        // We can add Day, Month, Year properties here if needed later
+        public DateTime? DateOfBirth { get; set; }
     }
-} 
+}

@@ -20,5 +20,6 @@ namespace KTUN_Final_Year_Project.Entities
         
         // Navigation properties
         public virtual ICollection<ProductSuppliers> ProductSuppliers { get; set; } = new List<ProductSuppliers>();
+        public virtual ICollection<UserFollowedSupplier> Followers { get; set; } = new List<UserFollowedSupplier>();
     }
 } 

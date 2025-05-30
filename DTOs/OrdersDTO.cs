@@ -2,6 +2,7 @@ namespace KTUN_Final_Year_Project.DTOs
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.Collections.Generic;
 
     public class OrdersDTO
     {
@@ -9,7 +10,6 @@ namespace KTUN_Final_Year_Project.DTOs
         [Required]
         public int UserID { get; set; }
 
-        [Required]
         [Range(0, double.MaxValue, ErrorMessage = "Toplam tutar 0'dan büyük olmalıdır.")]
         public decimal TotalAmount { get; set; }
 
@@ -18,5 +18,10 @@ namespace KTUN_Final_Year_Project.DTOs
 
         [MaxLength(4000)]
         public string ShippingAddress { get; set; }
+
+        [Required]
+        [MinLength(1, ErrorMessage = "Order must contain at least one item.")]
+        public List<OrderItemCreationDTO> OrderItems { get; set; } = new List<OrderItemCreationDTO>();
+#nullable enable
     }
 } 

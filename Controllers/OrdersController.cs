@@ -8,6 +8,7 @@ using KTUN_Final_Year_Project.Entities;
 using KTUN_Final_Year_Project.DTOs;
 using KTUN_Final_Year_Project.ResponseDTOs;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -89,28 +90,102 @@ namespace KTUN_Final_Year_Project.Controllers
 
         [HttpPost]
         [Produces("application/json")]
-        public IActionResult CreateOrder([FromBody] OrdersDTO orderDTO)
+        public async Task<IActionResult> CreateOrder([FromBody] OrdersDTO orderDTO)
         {
             if (orderDTO == null || !ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponseDto<object> { Success = false, Message = "Invalid order data.", Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList() });
             }
 
-            var order = _mapper.Map<Orders>(orderDTO);
-            order.OrderDate = DateTime.Now;
-            order.Status = "Pending";
+            if (orderDTO.OrderItems == null || !orderDTO.OrderItems.Any())
+            {
+                return BadRequest(new ApiResponseDto<object> { Success = false, Message = "Order must contain at least one item." });
+            }
 
-            _context.Orders.Add(order);
-            _context.SaveChanges();
+            // Transaction başlat
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            var createdOrder = _context.Orders
-                .Include(o => o.User)
-                .Include(o => o.OrderItems)
-                    .ThenInclude(oi => oi.Product)
-                .FirstOrDefault(o => o.OrderID == order.OrderID);
+            try
+            {
+                // 1. Ana Siparişi Oluştur
+                var order = _mapper.Map<Orders>(orderDTO); // UserID ve ShippingAddress gibi alanlar maplenmeli
+                order.OrderDate = DateTime.UtcNow; // Use UtcNow for consistency
+                order.Status = "Pending";
+                order.TotalAmount = 0; // Başlangıçta sıfırla, ürünler eklendikçe hesapla
 
-            var orderResponse = _mapper.Map<OrdersResponseDTO>(createdOrder);
-            return Ok(orderResponse);
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync(); // OrderID'nin oluşması için ana siparişi önce kaydet
+
+                decimal calculatedTotalAmount = 0;
+
+                // 2. Sipariş Kalemlerini (OrderItems) İşle ve Kaydet
+                foreach (var itemDto in orderDTO.OrderItems) // orderDTO.OrderItems, frontend'den gelen ürün listesi
+                {
+                    var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductID == itemDto.ProductID);
+                    if (product == null || !product.Status)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest(new ApiResponseDto<object> { Success = false, Message = $"Product with ID {itemDto.ProductID} not found or not active." });
+                    }
+
+                    if (product.StockQuantity < itemDto.Quantity)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest(new ApiResponseDto<object> { Success = false, Message = $"Insufficient stock for product: {product.ProductName}. Requested: {itemDto.Quantity}, In Stock: {product.StockQuantity}" });
+                    }
+
+                    var orderItem = new OrderItems
+                    {
+                        OrderID = order.OrderID, // Yeni oluşturulan Order'ın ID'si
+                        ProductID = itemDto.ProductID,
+                        Quantity = itemDto.Quantity,
+                        PriceAtPurchase = itemDto.PriceAtPurchase // Bu frontend'den gelmeli veya product.Price alınmalı
+                    };
+                    _context.OrderItems.Add(orderItem);
+
+                    // Ürün stok miktarını güncelle
+                    product.StockQuantity -= itemDto.Quantity;
+                    _context.Products.Update(product);
+
+                    calculatedTotalAmount += itemDto.PriceAtPurchase * itemDto.Quantity;
+                }
+
+                // 3. Siparişin Toplam Tutarını Güncelle
+                order.TotalAmount = calculatedTotalAmount;
+                _context.Orders.Update(order);
+
+                await _context.SaveChangesAsync(); // OrderItems, Product stok güncellemeleri ve Order TotalAmount güncellemesini kaydet
+
+                await transaction.CommitAsync(); // Her şey başarılıysa transaction'ı onayla
+
+                // 4. Başarılı Yanıtı Döndür
+                // Sadece temel sipariş bilgilerini döndürmek genellikle yeterlidir.
+                // My Orders sayfasında detaylar zaten ayrıca OrderItems endpoint'inden çekilecek.
+                var responsePayload = new 
+                {
+                    OrderID = order.OrderID,
+                    OrderDate = order.OrderDate,
+                    Status = order.Status,
+                    TotalAmount = order.TotalAmount,
+                    ShippingAddress = order.ShippingAddress,
+                    UserID = order.UserID
+                    // İsterseniz _mapper.Map<OrdersResponseDTO>(order) da kullanabilirsiniz,
+                    // ancak OrderItems'ın bu aşamada dolu gelmesi gerekmeyebilir.
+                };
+                return Ok(new ApiResponseDto<object> { Success = true, Data = responsePayload, Message = "Order created successfully." });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"DbUpdateException in CreateOrder: {dbEx.InnerException?.Message ?? dbEx.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDto<object> { Success = false, Message = "An error occurred while saving order data. Please try again.", Errors = new List<string> { dbEx.InnerException?.Message ?? dbEx.Message } });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"Exception in CreateOrder: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDto<object> { Success = false, Message = "An unexpected error occurred. Please try again.", Errors = new List<string> { ex.Message } });
+            }
         }
 
         [HttpPut("{id}")]

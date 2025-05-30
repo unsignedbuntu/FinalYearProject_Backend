@@ -17,8 +17,13 @@ namespace KTUN_Final_Year_Project.Mapper
                 .ForMember(dest => dest.Image, opt => opt.Ignore());
             CreateMap<InventoryDTO, Inventory>();
             CreateMap<LoyaltyProgramsDTO, LoyaltyPrograms>();
-            CreateMap<OrdersDTO, Orders>();
+            CreateMap<OrdersDTO, Orders>()
+                .ForMember(dest => dest.OrderDate, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalAmount, opt => opt.Ignore())
+                .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems));
             CreateMap<OrderItemsDTO, OrderItems>();
+            CreateMap<OrderItemCreationDTO, OrderItems>();
             CreateMap<ProductsDTO, Products>();
             CreateMap<ProductSuppliersDTO, ProductSuppliers>();
             CreateMap<ReviewsDTO, Reviews>()
@@ -144,6 +149,13 @@ namespace KTUN_Final_Year_Project.Mapper
             // Mappings for UserAddress -> UserAddressResponseDto
             CreateMap<UserAddress, UserAddressResponseDto>();
                 // .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null)); // Example if UserEmail is needed
+
+            // Mapping for UserFollowedSupplier -> FollowedSupplierResponseDto
+            CreateMap<UserFollowedSupplier, FollowedSupplierResponseDto>()
+                .ForMember(dest => dest.SupplierID, opt => opt.MapFrom(src => src.SupplierID))
+                .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.SupplierName : null))
+                .ForMember(dest => dest.ContactEmail, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.ContactEmail : null))
+                .ForMember(dest => dest.FollowedDate, opt => opt.MapFrom(src => src.FollowedDate));
         }
     }
 }
