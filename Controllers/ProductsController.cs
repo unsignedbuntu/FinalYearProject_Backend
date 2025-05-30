@@ -5,6 +5,10 @@ using KTUN_Final_Year_Project.Entities;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using KTUN_Final_Year_Project.DTOs.Products;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -192,6 +196,59 @@ namespace KTUN_Final_Year_Project.Controllers
             _context.SaveChanges();
 
             return NoContent();
+        }
+
+        // Yeni endpoint: En çok incelenen ürünleri getirir
+        [HttpGet("top-reviewed")]
+        public async Task<ActionResult<IEnumerable<TopReviewedProductDto>>> GetTopReviewedProducts([FromQuery] int count = 4)
+        {
+            if (count <= 0)
+            {
+                count = 4; // Geçersiz count sağlanırsa varsayılan olarak 4
+            }
+            if (count > 20) // İsteğe bağlı: Kötüye kullanımı önlemek için maksimum count sınırı
+            {
+                count = 20;
+            }
+
+            try
+            {
+                var topProducts = await _context.Products
+                    .Where(p => p.Status == true && p.Reviews.Any(r => r.Status == true)) // Sadece aktif ürünleri ve aktif yorumları dikkate al
+                    .Select(p => new
+                    {
+                        Product = p,
+                        ActiveReviews = p.Reviews.Where(r => r.Status == true).ToList() // Hesaplama için aktif yorumları filtrele
+                    })
+                    .Select(pData => new TopReviewedProductDto
+                    {
+                        ProductID = pData.Product.ProductID,
+                        ProductName = pData.Product.ProductName,
+                        Price = pData.Product.Price,
+                        OriginalPrice = null, // Product entity'sinde OriginalPrice yok, bu yüzden null atanıyor.
+                                              // Eğer eklenirse: pData.Product.OriginalPrice,
+                        ImageUrl = pData.Product.ImageUrl ?? "/images/placeholder.png", // Null ise bir placeholder sağlayın
+                        AverageRating = pData.ActiveReviews.Any() ? pData.ActiveReviews.Average(r => r.Rating) : 0,
+                        ReviewCount = pData.ActiveReviews.Count()
+                    })
+                    .OrderByDescending(p => p.ReviewCount) // Yorum sayısına göre sırala
+                    .ThenByDescending(p => p.AverageRating) // İsteğe bağlı olarak, sonra ortalama puana göre
+                    .Take(count)
+                    .ToListAsync();
+
+                if (topProducts == null || !topProducts.Any())
+                {
+                    return NotFound(new { Message = "En çok incelenen ürün bulunamadı." });
+                }
+
+                return Ok(topProducts);
+            }
+            catch (System.Exception ex)
+            {
+                // Gerçek bir uygulamada burada bir logger kullanmalısınız (örneğin, ILogger enjekte ederek)
+                // Console.WriteLine($"Error in GetTopReviewedProducts: {ex.ToString()}"); // veya logger.LogError(ex, "Error in GetTopReviewedProducts");
+                return StatusCode(500, new { Message = "En çok incelenen ürünler alınırken bir hata oluştu.", Details = ex.Message });
+            }
         }
     }
 }

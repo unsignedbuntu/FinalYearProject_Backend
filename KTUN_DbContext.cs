@@ -304,6 +304,9 @@
                 entity.Property(e => e.Comment).HasMaxLength(4000);
                 entity.Property(e => e.ReviewDate).HasColumnType("datetime2").HasDefaultValueSql("GETDATE()");
                 entity.Property(e => e.Status).IsRequired().HasDefaultValue(true);
+
+                entity.HasIndex(e => e.OrderItemID).HasDatabaseName("IX_Reviews_OrderItemID");
+
                 entity.HasOne(d => d.User)
                       .WithMany(p => p.Reviews)
                       .HasForeignKey(d => d.UserID)
@@ -312,6 +315,11 @@
                       .WithMany(p => p.Reviews)
                       .HasForeignKey(d => d.ProductID)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.OrderItem)
+                      .WithMany()
+                      .HasForeignKey(d => d.OrderItemID)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<SupportMessages>(entity =>

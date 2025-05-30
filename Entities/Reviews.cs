@@ -13,6 +13,8 @@ namespace KTUN_Final_Year_Project.Entities
         
         public int ProductID { get; set; }
         
+        public int? OrderItemID { get; set; }
+        
         public int Rating { get; set; }
         
         public string? Comment { get; set; }
@@ -27,5 +29,8 @@ namespace KTUN_Final_Year_Project.Entities
         
         [ForeignKey("ProductID")]
         public virtual Products? Product { get; set; }
+
+        [ForeignKey("OrderItemID")]
+        public virtual OrderItems? OrderItem { get; set; }
     }
 } 

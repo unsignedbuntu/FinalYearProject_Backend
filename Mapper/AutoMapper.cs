@@ -27,7 +27,13 @@ namespace KTUN_Final_Year_Project.Mapper
             CreateMap<ProductsDTO, Products>();
             CreateMap<ProductSuppliersDTO, ProductSuppliers>();
             CreateMap<ReviewsDTO, Reviews>()
-                .ForMember(dest => dest.UserID, opt => opt.MapFrom(src => int.Parse(src.UserID)));
+                .ForMember(dest => dest.UserID, opt => opt.Ignore())
+                .ForMember(dest => dest.ReviewID, opt => opt.Ignore())
+                .ForMember(dest => dest.ReviewDate, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore())
+                .ForMember(dest => dest.Product, opt => opt.Ignore())
+                .ForMember(dest => dest.OrderItem, opt => opt.Ignore());
             CreateMap<SalesDTO, Sales>();
             CreateMap<SalesDetailsDTO, SalesDetails>();
             CreateMap<StoresDTO, Stores>();
@@ -94,8 +100,17 @@ namespace KTUN_Final_Year_Project.Mapper
                 .ForMember(dest => dest.Barcode, opt => opt.MapFrom(src => src.Product != null ? src.Product.Barcode : null));
             
             CreateMap<Reviews, ReviewsResponseDTO>()
-                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty))
-                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty));
+                .ForMember(dest => dest.ReviewID, opt => opt.MapFrom(src => src.ReviewID))
+                .ForMember(dest => dest.UserID, opt => opt.MapFrom(src => src.UserID))
+                .ForMember(dest => dest.ProductID, opt => opt.MapFrom(src => src.ProductID))
+                .ForMember(dest => dest.OrderItemID, opt => opt.MapFrom(src => src.OrderItemID))
+                .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
+                .ForMember(dest => dest.Comment, opt => opt.MapFrom(src => src.Comment))
+                .ForMember(dest => dest.ReviewDate, opt => opt.MapFrom(src => src.ReviewDate))
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? (src.User.FirstName + " " + src.User.LastName) : null))
+                .ForMember(dest => dest.UserAvatarUrl, opt => opt.MapFrom(src => (string)null)) // Placeholder: Users.AvatarUrl needs to be added to User entity
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : null))
+                .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product != null ? src.Product.ImageUrl : null));
             
             CreateMap<Sales, SalesResponseDTO>()
                 .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.StoreName : string.Empty))

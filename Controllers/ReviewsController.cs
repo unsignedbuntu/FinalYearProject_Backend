@@ -6,6 +6,9 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -33,23 +36,6 @@ namespace KTUN_Final_Year_Project.Controllers
                 .ToList();
                 
             return Ok(reviews);
-        }
-
-        [HttpGet("{id}")]
-        [Produces("application/json")]
-        public IActionResult GetReviewByID(int id)
-        {
-            var review = _context.Reviews
-                .Include(r => r.User)
-                .Include(r => r.Product)
-                .FirstOrDefault(r => r.ReviewID == id && r.Status == true);
-
-            if (review == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(review);
         }
 
         [HttpGet("ByUser/{userId}")]
@@ -106,149 +92,248 @@ namespace KTUN_Final_Year_Project.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         [Produces("application/json")]
-        public IActionResult CreateReview([FromBody] ReviewsDTO reviewsDTO)
+        public async Task<IActionResult> CreateReview([FromBody] ReviewsDTO reviewsDTO)
         {
             if (reviewsDTO == null || !ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            // Kullanıcı varlığını kontrol et
-            var user = _context.Users.FirstOrDefault(u => u.Id == int.Parse(reviewsDTO.UserID));
-            if (user == null)
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
             {
-                return BadRequest("Kullanıcı bulunamadı");
+                return Unauthorized(new { Message = "Kullanıcı kimliği alınamadı veya geçersiz." });
             }
 
-            var product = _context.Products.FirstOrDefault(p => p.ProductID == reviewsDTO.ProductID && p.Status == true);
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductID == reviewsDTO.ProductID && p.Status == true);
             if (product == null)
             {
-                return BadRequest("Ürün bulunamadı");
+                return BadRequest(new { Message = "Ürün bulunamadı." });
             }
 
-            // Kullanıcının ürünü satın alıp almadığını kontrol et (opsiyonel)
-            bool hasPurchased = _context.Orders
-                .Where(o => o.UserID == int.Parse(reviewsDTO.UserID) && o.Status == "Active")
-                .Join(_context.OrderItems.Where(oi => oi.ProductID == reviewsDTO.ProductID),
-                      order => order.OrderID,
-                      orderItem => orderItem.OrderID,
-                      (order, orderItem) => order)
-                .Any();
-
-            if (!hasPurchased)
+            if (reviewsDTO.OrderItemID.HasValue)
             {
-                return BadRequest("Bu ürünü satın almadığınız için inceleme yapamazsınız");
+                var orderItem = await _context.OrderItems
+                    .Include(oi => oi.Order)
+                    .FirstOrDefaultAsync(oi => oi.OrderItemID == reviewsDTO.OrderItemID.Value &&
+                                               oi.ProductID == reviewsDTO.ProductID &&
+                                               oi.Order.UserID == userId);
+
+                if (orderItem == null)
+                {
+                    return BadRequest(new { Message = "Bu ürünü belirttiğiniz sipariş detayı ile satın almamışsınız." });
+                }
+
+                if (orderItem.Order.Status != "Pending" && orderItem.Order.Status != "Delivered")
+                {
+                    return BadRequest(new { Message = $"Sipariş durumu '{orderItem.Order.Status}' olduğu için bu ürüne henüz yorum yapamazsınız." });
+                }
+
+                bool hasReviewForOrderItem = await _context.Reviews
+                    .AnyAsync(r => r.UserID == userId && r.OrderItemID == reviewsDTO.OrderItemID.Value && r.Status == true);
+
+                if (hasReviewForOrderItem)
+                {
+                    return BadRequest(new { Message = "Bu siparişinizdeki ürün için zaten bir inceleme yapmışsınız." });
+                }
             }
-
-            // Kullanıcının bu ürün için zaten bir incelemesi var mı kontrol et
-            bool hasReview = _context.Reviews
-                .Where(r => r.UserID == int.Parse(reviewsDTO.UserID) && r.ProductID == reviewsDTO.ProductID && r.Status == true)
-                .Any();
-
-            if (hasReview)
+            else
             {
-                return BadRequest("Bu ürün için zaten bir inceleme yapmışsınız");
+                bool hasReviewForProductGenerally = await _context.Reviews
+                    .AnyAsync(r => r.UserID == userId && r.ProductID == reviewsDTO.ProductID && r.OrderItemID == null && r.Status == true);
+                if (hasReviewForProductGenerally)
+                {
+                     return BadRequest(new { Message = "Bu ürün için daha önce genel bir yorum yapmışsınız. Sipariş üzerinden yorum yapmayı deneyin."});
+                }
             }
 
             var review = _mapper.Map<Reviews>(reviewsDTO);
+            review.UserID = userId;
+            review.OrderItemID = reviewsDTO.OrderItemID;
             review.Status = true;
-            review.ReviewDate = DateTime.Now;
+            review.ReviewDate = DateTime.UtcNow;
 
             _context.Reviews.Add(review);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            // Ürünün ortalama puanını güncelle
-            UpdateProductAverageRating(reviewsDTO.ProductID);
+            var createdReviewDetails = await _context.Reviews
+                .Where(r => r.ReviewID == review.ReviewID)
+                .Select(r => new ReviewsResponseDTO
+                {
+                    ReviewID = r.ReviewID,
+                    UserID = r.UserID,
+                    ProductID = r.ProductID,
+                    OrderItemID = r.OrderItemID,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    ReviewDate = r.ReviewDate,
+                    UserFullName = r.User != null ? (r.User.FirstName + " " + r.User.LastName) : "Bilinmeyen Kullanıcı",
+                    ProductName = r.Product != null ? r.Product.ProductName : "Bilinmeyen Ürün",
+                    ProductImageUrl = r.Product != null ? r.Product.ImageUrl : null,
+                    UserAvatarUrl = null
+                })
+                .FirstOrDefaultAsync();
 
-            var createdReview = _context.Reviews
-                .Include(r => r.User)
-                .Include(r => r.Product)
-                .FirstOrDefault(r => r.ReviewID == review.ReviewID);
-
-            return Ok(createdReview);
+            return Ok(createdReviewDetails);
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         [Produces("application/json")]
-        public IActionResult UpdateReview(int id, [FromBody] ReviewsDTO reviewsDTO)
+        public async Task<IActionResult> UpdateReview(int id, [FromBody] ReviewsDTO reviewsDTO)
         {
-            if (reviewsDTO == null)
+            if (reviewsDTO == null || !ModelState.IsValid)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
-            var review = _context.Reviews.FirstOrDefault(r => r.ReviewID == id && r.Status == true);
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int currentUserId))
+            {
+                return Unauthorized(new { Message = "Kullanıcı kimliği alınamadı veya geçersiz." });
+            }
+
+            var review = await _context.Reviews.FirstOrDefaultAsync(r => r.ReviewID == id && r.Status == true);
             if (review == null)
             {
-                return NotFound();
+                return NotFound(new { Message = "Güncellenecek yorum bulunamadı." });
             }
 
-            // İncelemenin sahibi olduğunu kontrol et
-            if (review.UserID != int.Parse(reviewsDTO.UserID))
+            if (review.UserID != currentUserId)
             {
-                return Forbid();
+                return Forbid("Bu yorumu güncelleme yetkiniz yok.");
             }
 
-            // İncelemeyi güncelle
+            if (review.ProductID != reviewsDTO.ProductID)
+            {
+                return BadRequest(new { Message = "Yorumun ait olduğu ürün değiştirilemez." });
+            }
+
+            if (review.OrderItemID != reviewsDTO.OrderItemID)
+            {
+                 return BadRequest(new { Message = "Yorumun ait olduğu sipariş kalemi değiştirilemez." });
+            }
+
             review.Rating = reviewsDTO.Rating;
             review.Comment = reviewsDTO.Comment;
-            review.ReviewDate = DateTime.Now;
+            review.ReviewDate = DateTime.UtcNow;
 
-            _context.Reviews.Update(review);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            // Ürünün ortalama puanını güncelle
-            UpdateProductAverageRating(reviewsDTO.ProductID);
-
-            var updatedReview = _context.Reviews
-                .Include(r => r.User)
-                .Include(r => r.Product)
-                .FirstOrDefault(r => r.ReviewID == id);
-
-            return Ok(updatedReview);
+            var updatedReviewDetails = await _context.Reviews
+                .Where(r => r.ReviewID == review.ReviewID)
+                .Select(r => new ReviewsResponseDTO {
+                    ReviewID = r.ReviewID,
+                    UserID = r.UserID,
+                    ProductID = r.ProductID,
+                    OrderItemID = r.OrderItemID,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    ReviewDate = r.ReviewDate,
+                    UserFullName = r.User != null ? (r.User.FirstName + " " + r.User.LastName) : "Bilinmeyen Kullanıcı",
+                    ProductName = r.Product != null ? r.Product.ProductName : "Bilinmeyen Ürün",
+                    ProductImageUrl = r.Product != null ? r.Product.ImageUrl : null,
+                    UserAvatarUrl = null
+                })
+                .FirstOrDefaultAsync();
+            
+            return Ok(updatedReviewDetails);
         }
 
-        [HttpDelete("SoftDelete_Status{id}")]
+        [HttpGet("me/reviewable-order-items")]
+        [Authorize]
         [Produces("application/json")]
-        public IActionResult SoftDeleteReviewByStatus(int id)
+        public async Task<IActionResult> GetReviewableOrderItems()
         {
-            var review = _context.Reviews.FirstOrDefault(r => r.ReviewID == id);
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int currentUserId))
+            {
+                return Unauthorized(new { Message = "Kullanıcı kimliği alınamadı veya geçersiz."});
+            }
+
+            var reviewableItems = await _context.OrderItems
+                .Include(oi => oi.Order)
+                .Include(oi => oi.Product)
+                .Where(oi => oi.Order.UserID == currentUserId &&
+                             (oi.Order.Status == "Pending" || oi.Order.Status == "Delivered") &&
+                             !_context.Reviews.Any(r => r.OrderItemID == oi.OrderItemID && r.UserID == currentUserId && r.Status == true))
+                .Select(oi => new ReviewableProductDto
+                {
+                    OrderItemId = oi.OrderItemID,
+                    OrderId = oi.OrderID,
+                    ProductId = oi.ProductID,
+                    ProductName = oi.Product.ProductName,
+                    ProductImageUrl = oi.Product.ImageUrl,
+                    OrderDate = oi.Order.OrderDate,
+                    Quantity = oi.Quantity,
+                    PriceAtPurchase = oi.PriceAtPurchase,
+                })
+                .OrderByDescending(oi => oi.OrderDate)
+                .ToListAsync();
+
+            return Ok(reviewableItems);
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+        [Produces("application/json")]
+        public async Task<IActionResult> DeleteReview(int id)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int currentUserId))
+            {
+                return Unauthorized(new { Message = "Kullanıcı kimliği alınamadı veya geçersiz." });
+            }
+
+            var review = await _context.Reviews.FirstOrDefaultAsync(r => r.ReviewID == id);
             if (review == null)
             {
-                return NotFound();
+                return NotFound(new { Message = "Silinecek yorum bulunamadı." });
             }
 
-            int productID = review.ProductID;
+            if (review.UserID != currentUserId && !User.IsInRole("Admin"))
+            {
+                return Forbid("Bu yorumu silme yetkiniz yok.");
+            }
 
             review.Status = false;
-            _context.Reviews.Update(review);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            // Ürünün ortalama puanını güncelle
-            UpdateProductAverageRating(productID);
-
-            return NoContent();
+            return Ok(new { Message = "Yorum başarıyla silindi." });
         }
-        
-        private void UpdateProductAverageRating(int productID)
-        {
-            // Products entity'sinden AverageRating kaldırıldığı için bu metodun işlevi kalmadı.
-            // Gerekirse, ürün puanları ayrı bir şekilde hesaplanıp saklanabilir veya dinamik olarak çekilebilir.
-            /*
-            var product = _context.Products.FirstOrDefault(p => p.ProductID == productID);
-            if (product != null)
-            {
-                var ratings = _context.Reviews
-                    .Where(r => r.ProductID == productID && r.Status == true)
-                    .Select(r => r.Rating)
-                    .ToList();
 
-                product.AverageRating = ratings.Any() ? (decimal)ratings.Average() : 0;
-                _context.Products.Update(product);
-                _context.SaveChanges();
+        [HttpGet("details/{id}")]
+        [Produces("application/json")]
+        public async Task<IActionResult> GetReviewDetailsById(int id)
+        {
+            var review = await _context.Reviews
+                .Include(r => r.User)
+                .Include(r => r.Product)
+                .Where(r => r.ReviewID == id && r.Status == true)
+                .Select(r => new ReviewsResponseDTO
+                {
+                    ReviewID = r.ReviewID,
+                    UserID = r.UserID,
+                    ProductID = r.ProductID,
+                    OrderItemID = r.OrderItemID,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    ReviewDate = r.ReviewDate,
+                    UserFullName = r.User != null ? (r.User.FirstName + " " + r.User.LastName) : "Bilinmeyen Kullanıcı",
+                    UserAvatarUrl = null,
+                    ProductName = r.Product != null ? r.Product.ProductName : "Bilinmeyen Ürün",
+                    ProductImageUrl = r.Product != null ? r.Product.ImageUrl : null
+                })
+                .FirstOrDefaultAsync();
+
+            if (review == null)
+            {
+                return NotFound(new { Message = "Yorum bulunamadı." });
             }
-            */
+
+            return Ok(review);
         }
     }
 } 

@@ -4,18 +4,19 @@ namespace KTUN_Final_Year_Project.DTOs
 {
     public class ReviewsDTO
     {
-        [Required]
-        public string UserID { get; set; } = default!;
+        // UserID backend'de claim'lerden alınacak.
+        // public string UserID { get; set; } = default!;
 
         [Required]
         public int ProductID { get; set; }
+
+        public int? OrderItemID { get; set; } // Yorumu belirli bir sipariş kalemine bağlamak için
 
         [Required]
         [Range(1, 5, ErrorMessage = "Değerlendirme puanı 1-5 arasında olmalıdır.")]
         public int Rating { get; set; }
 
-        [Required]
-        [StringLength(1000, MinimumLength = 10, ErrorMessage = "Yorum 10-1000 karakter arasında olmalıdır.")]
-        public string Comment { get; set; } = default!;
+        [StringLength(1000, ErrorMessage = "Yorum en fazla 1000 karakter olmalıdır.")]
+        public string? Comment { get; set; } // Yorum opsiyonel
     }
 } 
