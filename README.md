@@ -80,6 +80,207 @@ The project follows a standard, scalable ASP.NET Core directory structure.
 
 ---
 
+## 📜 API Endpoints
+
+Here is a comprehensive list of all available API endpoints, grouped by their respective controllers.
+
+### Addresses
+- `GET /api/Addresses`
+- `POST /api/Addresses`
+- `GET /api/Addresses/{id}`
+- `PUT /api/Addresses/{id}`
+- `DELETE /api/Addresses/{id}`
+
+### Auth
+- `POST /api/Auth/register`
+- `POST /api/Auth/login`
+- `GET /api/Auth/me`
+- `POST /api/Auth/logout`
+
+### Cart
+- `GET /api/Cart`
+- `POST /api/Cart`
+- `DELETE /api/Cart/{productId}`
+- `DELETE /api/Cart/clear`
+
+### Categories
+- `GET /api/Categories`
+- `POST /api/Categories`
+- `GET /api/Categories/{id}`
+- `PUT /api/Categories/{id}`
+- `GET /api/Categories/ByStore/{storeId}`
+- `DELETE /api/Categories/SoftDelete_Status/{id}`
+
+### FavoriteLists
+- `GET /api/FavoriteLists/users/{userId}`
+- `POST /api/FavoriteLists/users/{userId}`
+- `GET /api/FavoriteLists/public`
+- `GET /api/FavoriteLists/{listId}`
+- `PUT /api/FavoriteLists/{listId}`
+- `DELETE /api/FavoriteLists/{listId}`
+- `GET /api/FavoriteLists/{listId}/products`
+- `POST /api/FavoriteLists/{listId}/products`
+- `DELETE /api/FavoriteLists/{listId}/products/{productId}`
+
+### Favorites
+- `GET /api/Favorites`
+- `POST /api/Favorites`
+- `DELETE /api/Favorites/{productId}`
+
+### ImageCache
+- `GET /api/ImageCache/{id}`
+- `GET /api/ImageCache/prompt/{prompt}`
+- `POST /api/ImageCache`
+- `GET /api/ImageCache/products`
+- `GET /api/ImageCache/product/{productId}`
+- `GET /api/ImageCache/supplier/{supplierId}`
+- `DELETE /api/ImageCache/{id}`
+
+### ImageServe
+- `GET /api/ImageServe/{productId}`
+
+### Inventory
+- `GET /api/Inventory`
+- `POST /api/Inventory`
+- `GET /api/Inventory/{id}`
+- `PUT /api/Inventory/{id}`
+- `DELETE /api/Inventory/SoftDelete_Status/{id}`
+
+### LoyaltyPrograms
+- `GET /api/LoyaltyPrograms`
+- `POST /api/LoyaltyPrograms`
+- `GET /api/LoyaltyPrograms/{id}`
+- `PUT /api/LoyaltyPrograms/{id}`
+- `DELETE /api/LoyaltyPrograms/SoftDelete_Status/{id}`
+
+### OrderItems
+- `GET /api/OrderItems`
+- `POST /api/OrderItems`
+- `GET /api/OrderItems/{id}`
+- `PUT /api/OrderItems/{id}`
+- `DELETE /api/OrderItems/SoftDelete_Status/{id}`
+- `GET /api/OrderItems/ByOrder/{orderId}`
+- `GET /api/OrderItems/ByProduct/{productId}`
+
+### Orders
+- `GET /api/Orders`
+- `POST /api/Orders`
+- `GET /api/Orders/{id}`
+- `PUT /api/Orders/{id}`
+- `GET /api/Orders/ByUser/{userId}`
+- `GET /api/Orders/ByStatus/{status}`
+- `DELETE /api/Orders/SoftDelete_Status/{id}`
+- `PUT /api/Orders/cancel/{id}`
+
+### Products
+- `GET /api/Products`
+- `POST /api/Products`
+- `GET /api/Products/{id}`
+- `PUT /api/Products/{id}`
+- `GET /api/Products/ByCategory/{categoryId}`
+- `GET /api/Products/ByStore/{storeId}`
+- `DELETE /api/Products/SoftDelete_Status/{id}`
+- `GET /api/products/top-reviewed`
+
+### ProductRecommendations
+- `GET /api/ProductRecommendations`
+- `POST /api/ProductRecommendations`
+- `GET /api/ProductRecommendations/{id}`
+- `PUT /api/ProductRecommendations/{id}`
+- `DELETE /api/ProductRecommendations/SoftDelete_Status/{id}`
+
+### ProductSuppliers
+- `GET /api/ProductSuppliers`
+- `POST /api/ProductSuppliers`
+- `GET /api/ProductSuppliers/{id}`
+- `PUT /api/ProductSuppliers/{id}`
+- `DELETE /api/ProductSuppliers/SoftDelete_Status/{id}`
+
+### Reviews
+- `GET /api/Reviews`
+- `POST /api/Reviews`
+- `GET /api/Reviews/ByProduct/{productId}`
+- `GET /api/Reviews/ByUser/{userId}`
+- `GET /api/Reviews/ByStore/{storeId}`
+- `PUT /api/Reviews/{id}`
+- `DELETE /api/Reviews/{id}`
+- `GET /api/Reviews/me/reviewable-order-items`
+- `GET /api/Reviews/details/{id}`
+
+### Sales
+- `GET /api/Sales`
+- `POST /api/Sales`
+- `GET /api/Sales/{id}`
+- `PUT /api/Sales/{id}`
+- `DELETE /api/Sales/SoftDelete_Status/{id}`
+
+### SalesDetails
+- `GET /api/SalesDetails`
+- `POST /api/SalesDetails`
+- `GET /api/SalesDetails/{id}`
+- `PUT /api/SalesDetails/{id}`
+- `DELETE /api/SalesDetails/SoftDelete_Status/{id}`
+
+### Search
+- `GET /api/Search`
+
+### Stores
+- `GET /api/Stores`
+- `POST /api/Stores`
+- `GET /api/Stores/{id}`
+- `PUT /api/Stores/{id}`
+- `DELETE /api/Stores/SoftDelete_Status/{id}`
+
+### Suppliers
+- `GET /api/Suppliers`
+- `POST /api/Suppliers`
+- `GET /api/Suppliers/{id}`
+- `PUT /api/Suppliers/{id}`
+- `DELETE /api/Suppliers/SoftDelete_Status/{id}`
+
+### SupportMessages
+- `GET /api/SupportMessages`
+- `POST /api/SupportMessages`
+- `GET /api/SupportMessages/{id}`
+- `PUT /api/SupportMessages/{id}`
+- `GET /api/SupportMessages/User/{userId}`
+- `GET /api/SupportMessages/Open`
+- `DELETE /api/SupportMessages/SoftDelete_Status/{id}`
+
+### Test
+- `GET /api/test/test-redis`
+
+### UserFollowedSuppliers
+- `GET /api/users/{userId}/followed-suppliers`
+- `POST /api/users/{userId}/followed-suppliers/{supplierId}`
+- `DELETE /api/users/{userId}/followed-suppliers/{supplierId}`
+
+### UserInformation
+- `GET /api/UserInformation`
+- `PUT /api/UserInformation`
+
+### UserLoyalty
+- `GET /api/userLoyalty`
+- `POST /api/userLoyalty`
+- `GET /api/userLoyalty/{id}`
+- `PUT /api/userLoyalty/{id}`
+- `DELETE /api/userLoyalty/SoftDelete_Status/{id}`
+
+### Users
+- `GET /api/Users`
+- `POST /api/Users`
+- `GET /api/Users/{id}`
+- `PUT /api/Users/{id}`
+- `DELETE /api/Users/SoftDelete_Status/{id}`
+
+### UserStore
+- `GET /api/UserStore`
+- `POST /api/UserStore`
+- `GET /api/UserStore/{id}`
+- `PUT /api/UserStore/{id}`
+- `DELETE /api/UserStore/{id}`
+
+
 ## ⚙️ Getting Started
 
 Follow these instructions to get the backend up and running on your local machine.
