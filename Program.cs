@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -75,8 +76,11 @@ builder.Services.AddLogging(loggingBuilder =>
         .SetMinimumLevel(LogLevel.Debug);
 });
 
-// Add AutoMapper service
-builder.Services.AddAutoMapper(typeof(Program));
+// AutoMapper servisini yeni standartlara göre ekliyoruz
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(typeof(Program).Assembly);
+});
 
 // Configure CORS to allow all origins, methods, and headers
 builder.Services.AddCors(options =>
