@@ -1,5 +1,5 @@
 using KTUN_Final_Year_Project.Entities;
-using KTUN_Final_Year_Project.DTOs; // Assuming DTOs for Register/Login exist or will be created
+using KTUN_Final_Year_Project.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore; // Added for DbUpdateException and KTUN_DbContext
+using Microsoft.EntityFrameworkCore;
 
 namespace KTUN_Final_Year_Project.Controllers
 {
@@ -22,23 +22,18 @@ namespace KTUN_Final_Year_Project.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<Users> _userManager;
-        private readonly SignInManager<Users> _signInManager; // We might not need SignInManager directly if only generating tokens
+        private readonly SignInManager<Users> _signInManager;
         private readonly IConfiguration _configuration;
-        private readonly RoleManager<IdentityRole<int>> _roleManager; // Optional: if using roles
-        private readonly KTUN_DbContext _context; // Added KTUN_DbContext
+        private readonly RoleManager<IdentityRole<int>> _roleManager;
+        private readonly KTUN_DbContext _context;
 
-        public AuthController(
-            UserManager<Users> userManager,
-            SignInManager<Users> signInManager,
-            IConfiguration configuration,
-            RoleManager<IdentityRole<int>> roleManager, // Inject RoleManager if roles are needed
-            KTUN_DbContext context) // Injected KTUN_DbContext
+        public AuthController( UserManager<Users> userManager, SignInManager<Users> signInManager, IConfiguration configuration, RoleManager<IdentityRole<int>> roleManager, KTUN_DbContext context )
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
-            _roleManager = roleManager; // Assign RoleManager
-            _context = context; // Assigned KTUN_DbContext
+            _roleManager = roleManager;
+            _context = context;
         }
 
         // POST: api/Auth/Register
@@ -47,7 +42,6 @@ namespace KTUN_Final_Year_Project.Controllers
         {
             if (!ModelState.IsValid)
             {
-                // Return a more structured error response
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
                 return BadRequest(new { success = false, message = "Validation failed.", errors });
             }
@@ -63,12 +57,11 @@ namespace KTUN_Final_Year_Project.Controllers
             {
                 Email = registerDto.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = registerDto.Email, // Or a unique username if different from email
-                FirstName = registerDto.FirstName, // Assign FirstName
-                LastName = registerDto.LastName,   // Assign LastName
-                // FullName can be derived or set explicitly if still needed in Users table
+                UserName = registerDto.Email,
+                FirstName = registerDto.FirstName,
+                LastName = registerDto.LastName,
                 FullName = $"{registerDto.FirstName} {registerDto.LastName}",
-                PhoneNumber = registerDto.PhoneNumber?.Trim(), // Assign PhoneNumber from DTO
+                PhoneNumber = registerDto.PhoneNumber?.Trim(),
                 Status = true
             };
 
@@ -81,41 +74,27 @@ namespace KTUN_Final_Year_Project.Controllers
             }
 
             // 2. Create UserInformation Record
-            // user.Id is populated after CreateAsync is successful
             UserInformation newUserInfo = new UserInformation
             {
-                UserID = user.Id, // Foreign Key to the Users table
+                UserID = user.Id,
                 FirstName = registerDto.FirstName,
                 LastName = registerDto.LastName,
                 PhoneNumber = registerDto.PhoneNumber?.Trim(),
-                DateOfBirth = registerDto.DateOfBirth // Assign DateOfBirth from DTO
+                DateOfBirth = registerDto.DateOfBirth
             };
 
             _context.UserInformation.Add(newUserInfo);
 
             try
             {
-                await _context.SaveChangesAsync(); // Save UserInformation to the database
+                await _context.SaveChangesAsync();
             }
             catch (DbUpdateException ex)
             {
-                // Log the error
                 Console.WriteLine($"Error saving UserInformation for UserID {user.Id}: {ex.InnerException?.Message ?? ex.Message}");
-                // Important: User (Identity) was already created. 
-                // If saving UserInformation fails, you might want to:
-                // 1. Inform the user that their basic account was created but profile info failed, ask to update later.
-                // 2. Implement a transaction to roll back user creation if UserInfo fails (more complex).
-                // For now, we'll just log and return a success for the user creation part,
-                // as the primary registration (Identity user) succeeded.
-                // However, it's better to signal that something went partially wrong.
-                // Consider if you want to delete the created user if UserInformation saving fails.
-                // For simplicity, we'll proceed but this is a point of attention for robust error handling.
-                 await _userManager.DeleteAsync(user); // Attempt to delete the user if UserInformation fails
-                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "An error occurred while saving user details. User registration rolled back.", error = ex.Message });
+                await _userManager.DeleteAsync(user);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "An error occurred while saving user details. User registration rolled back.", error = ex.Message });
             }
-
-            // TODO: Optionally assign roles here (e.g., await _userManager.AddToRoleAsync(user, "User");)
-            // Example: await _userManager.AddToRoleAsync(user, "User");
 
             return Ok(new { success = true, message = "User created successfully!" });
         }
@@ -129,72 +108,53 @@ namespace KTUN_Final_Year_Project.Controllers
                 return BadRequest(ModelState);
             }
 
-            // Find the user by email
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
 
-            // Check if user exists and password is correct
             if (user != null && await _userManager.CheckPasswordAsync(user, loginDto.Password))
             {
-                // Check if user account is active (using the custom Status property)
                 if (!user.Status)
                 {
                     return Unauthorized(new { Status = "Error", Message = "User account is inactive." });
                 }
-                
-                // Generate JWT token
+
                 var tokenString = await GenerateJwtToken(user);
-                var tokenExpiry = DateTime.Now.AddHours(3); // Match token expiration
 
-                // Token'ı HTTP-only çereze ekle
-                Response.Cookies.Append("authToken", tokenString, new CookieOptions
-                {
-                 HttpOnly = true,
-                Secure = false, // false olduğundan emin ol veya bu satırı kaldır
-                 Expires = tokenExpiry,
-                SameSite = SameSiteMode.Lax, // Lax kalsın
-                Path = "/"
-                });
-
-                // Token yerine temel kullanıcı bilgilerini döndür (opsiyonel)
+                // Frontend JSON'dan alıp kendi çerezine (cookie) ekleyeceği için 
+                // Token ve User bilgilerini doğrudan gönderiyoruz.
                 return Ok(new
                 {
                     Status = "Success",
                     Message = "Login successful.",
-                    User = new // Frontend'in ihtiyaç duyabileceği bilgiler
+                    Token = tokenString,
+                    User = new
                     {
                         Id = user.Id,
                         Email = user.Email,
                         FullName = user.FullName
-                        // İhtiyaç varsa diğer roller vs. eklenebilir
                     }
                 });
             }
 
-            // If login fails
             return Unauthorized(new { Status = "Error", Message = "Invalid email or password." });
         }
 
         // GET: api/Auth/Me
-        [Authorize] // Bu endpoint'e erişim için geçerli bir çerez (token) gerekir
+        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            // [Authorize] attribute'u sayesinde User.Identity'nin dolu olacağını varsayabiliriz
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
             {
-                // Bu durum normalde [Authorize] nedeniyle oluşmamalı, ama bir güvenlik kontrolü
                 return Unauthorized(new { Status = "Error", Message = "User not identified." });
             }
 
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null || !user.Status)
             {
-                // Kullanıcı bulunamadı veya pasif
                 return NotFound(new { Status = "Error", Message = "User not found or inactive." });
             }
 
-            // Kullanıcı bilgilerini döndür
             return Ok(new
             {
                 Status = "Success",
@@ -203,7 +163,6 @@ namespace KTUN_Final_Year_Project.Controllers
                     Id = user.Id,
                     Email = user.Email,
                     FullName = user.FullName,
-                    // Gerekirse roller veya diğer bilgiler eklenebilir
                 }
             });
         }
@@ -212,13 +171,8 @@ namespace KTUN_Final_Year_Project.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            Response.Cookies.Delete("authToken", new CookieOptions
-            {
-            HttpOnly = true,
-            Secure = false, // false olduğundan emin ol veya bu satırı kaldır
-            SameSite = SameSiteMode.Lax, // Lax kalsın
-            Path = "/"
-            });
+            // Backend'in cookie silmesine gerek kalmadı. 
+            // Frontend tarafında çıkış yaparken Cookies.remove('authToken') komutu kullanılacak.
             return Ok(new { Status = "Success", Message = "Logged out successfully." });
         }
 
@@ -241,7 +195,7 @@ namespace KTUN_Final_Year_Project.Controllers
                 authClaims.Add(new Claim(ClaimTypes.Role, userRole));
             }
 
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"] 
+            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]
                 ?? throw new InvalidOperationException("JWT Secret not found in configuration.")));
 
             var token = new JwtSecurityToken(
@@ -254,5 +208,41 @@ namespace KTUN_Final_Year_Project.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+        // POST: api/Auth/change-password
+        [Authorize] // Sadece giriş yapmış (token'ı olan) kullanıcılar şifre değiştirebilir!
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { success = false, message = "Invalid data." });
+            }
+
+            // 1. Token'dan (Yaka kartından) isteği atan kişinin kimliğini (ID) bul
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                return Unauthorized(new { success = false, message = "User not identified." });
+            }
+
+            // 2. Veritabanından o kullanıcıyı getir
+            var user = await _userManager.FindByIdAsync(userIdString);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            // 3. Identity kütüphanesini kullanarak şifreyi güvenli bir şekilde değiştir
+            var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { success = true, message = "Password updated successfully!" });
+            }
+
+            // 4. Eğer eski şifre yanlışsa veya yeni şifre kurallara uymuyorsa hata dön
+            var errors = result.Errors.Select(e => e.Description);
+            return BadRequest(new { success = false, message = "Failed to update password.", errors = errors });
+        }
     }
-} 
+}
